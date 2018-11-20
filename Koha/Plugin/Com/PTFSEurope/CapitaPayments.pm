@@ -19,10 +19,11 @@ use Koha::Account::Lines;
 use Koha::Patrons;
 
 use XML::LibXML;
-use Mojo::UserAgent;
 use Mojo::Util qw(b64_decode);
 use Digest::SHA qw(hmac_sha256_base64);
 use Time::Moment;
+
+use Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService;
 
 ## Here we set our plugin version
 our $VERSION = "00.00.01";
@@ -41,7 +42,8 @@ our $metadata = {
 };
 
 # A local useragent
-our $ua = Mojo::UserAgent->new;
+our $scpService =
+  Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService->new;
 
 sub new {
     my ( $class, $args ) = @_;
@@ -118,194 +120,117 @@ sub opac_online_payment_begin {
     my $cancel_url = URI->new( C4::Context->preference('OPACBaseURL')
           . "/cgi-bin/koha/opac-account.pl" );
 
-    # Construct XML POST
-    my $xml = XML::LibXML::Document->new( '1.0', 'utf-8' );
-    my $root = $xml->createElementNS(
-        'http://www.capita-software-services.com/scp/simple',
-        'scpSimpleInvokeRequest' );
-
     # Add Credentials
     #################
     my $Pay360SiteID = $self->retrieve_data('Pay360SiteID');
     my $Pay360HMACID = $self->retrieve_data('Pay360HMACID');
-    my $credentials  = $xml->createElementNS(
-        'https://support.capita-
-        software.co.uk/selfservice/?commonFoundation', 'credentials'
-    );
-
-    # subject
-    my $subject     = $xml->createElement('subject');
-    my $subjectType = $xml->createElement('subjectType');
-    $subjectType->appendTextNode('CapitaPortal');
-    $subject->appendChild($subjectType);
-    my $identifier = $xml->createElement('identifier');
-    $identifier->appendTextNode($Pay360SiteID);
-    $subject->appendChild($identifier);
-    my $systemCode = $xml->createElement('systemCode');
-    $systemCode->appendTextNode('SCP');
-    $subject->appendChild($systemCode);
-    $credentials->appendChild($subject);
-
-    # request identification
-    my $requestIdentification = $xml->createElement('requestIdentification');
     my $reqRef                = $transaction_id;
-    my $uniqueReference       = $xml->createElement('uniqueReference');
-    $uniqueReference->appendTextNode($reqRef);
-    $requestIdentification->appendChild($uniqueReference);
     my $stamp     = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
-    my $timeStamp = $xml->createElement('timeStamp');
-    $timeStamp->appendTextNode($stamp);
-    $requestIdentification->appendChild($timeStamp);
-    $credentials->appendChild($requestIdentification);
-
-    # signature
-    my $signature = $xml->createElement('signature');
-    my $algorithm = $xml->createElement('algorithm');
-    $algorithm->appendTextNode('Original');
-    $signature->appendChild($algorithm);
-    my $hmacKeyID = $xml->createElement('hmacKeyID');
-    $hmacKeyID->appendTextNode($Pay360HMACID);
-    $signature->appendChild($hmacKeyID);
     my $current_digest =
       $self->get_digest( 'CapitaPortal', $Pay360SiteID, $reqRef, $stamp,
         'Original', $Pay360HMACID );
-    my $digest = $xml->createElement('digest');
-    $digest->appendTextNode($current_digest);
-    $signature->appendChild($digest);
-    $credentials->appendChild($signature);
 
-    $root->appendChild($credentials);
-
-    # Add Request Type
-    my $requestType =
-      $xml->createElementNS( 'http://www.capita-software-services.com/scp/base',
-        'requestType' );
-    $requestType->appendTextNode('payOnly');
-    $root->appendChild($requestType);
-
-    # Add Request ID
-    my $requestId =
-      $xml->createElementNS( 'http://www.capita-software-services.com/scp/base',
-        'requestId' );
-    $requestId->appendTextNode($reqRef);
-    $root->appendChild($requestId);
-
-    # Add Routing
-    my $routing =
-      $xml->createElementNS( 'http://www.capita-software-services.com/scp/base',
-        'routing' );
-
-    # return url
-    my $returnUrl = $xml->createElement('returnUrl');
-    $returnUrl->appendTextNode($callback_url);
-    $routing->appendChild($returnUrl);
-
-    # back url
-    my $backUrl = $xml->createElement('backUrl');
-    $backUrl->appendTextNode($cancel_url);
-    $routing->appendChild($backUrl);
-
-    # site id
-    my $siteId = $xml->createElement('siteId');
-    $siteId->appendTextNode($Pay360SiteID);
-    $routing->appendChild($siteId);
-
-    # scp id
     my $Pay360PortalID = $self->retrieve_data('Pay360PortalID');
-    my $scpId          = $xml->createElement('scpId');
-    $scpId->appendTextNode($Pay360PortalID);
-    $routing->appendChild($scpId);
-
-    $root->appendChild($routing);
-
-    # Add Entry Method
-    my $panEntryMethod =
-      $xml->createElementNS( 'http://www.capita-software-services.com/scp/base',
-        'panEntryMethod' );
-    $panEntryMethod->appendTextNode('ECOM');
-    $root->appendChild($panEntryMethod);
-
-    # Add sale
-    my $sale =
-      $xml->createElementNS( 'http://www.capita-software-services.com/scp/base',
-        'sale' );
 
     # items
     my $sum_amountInMinorUnits = 0;
-    my $items                  = $xml->createElement('items');
     my @accountline_ids        = $cgi->multi_param('accountline');
     my $accountlines           = $schema->resultset('Accountline')
       ->search( { accountlines_id => \@accountline_ids } );
+    my @items;
     for my $accountline ( $accountlines->all ) {
-        my $item = $xml->createElement('item');
-
-        # summary
-        my $itemSummary = $xml->createElement('itemSummary');
-
-        # summary - description
-        my $description = $xml->createElement('description');
-        $description->appendTextNode( $accountline->description );
-        $itemSummary->appendChild($description);
-
-        # summary - amount
         my $amount = sprintf "%.2f", $accountline->amountoutstanding;
         $amount                 = $amount * 100;
         $sum_amountInMinorUnits = $sum_amountInMinorUnits + $amount;
-        my $amountInMinorUnits = $xml->createElement('amountInMinorUnits');
-        $amountInMinorUnits->appendTextNode($amount);
-        $itemSummary->appendChild($amountInMinorUnits);
 
-        # summary - reference
-        my $reference = $xml->createElement('reference');
-        $reference->appendTextNode( $accountline->accountlines_id );
-        $itemSummary->appendChild($reference);
-
-        # summary - displayable reference
-        my $displayableReference = $xml->createElement('displayableReference');
-        $displayableReference->appendTextNode( $accountline->accountlines_id );
-        $itemSummary->appendChild($displayableReference);
-
-        $item->appendChild($itemSummary);
-
-        # quantity
-        my $quantity = $xml->createElement('quantity');
-        $quantity->appendTextNode('1');
-        $item->appendChild($quantity);
-
-        # lineId
-        my $lineId = $xml->createElement('lineId');
-        $lineId->appendTextNode( $accountline->accountlines_id );
-        $item->appendChild($lineId);
-
-        # append to items
-        $items->appendChild($item);
+        # SOAP::Lite
+        my $item_SOAP = SOAP::Data->name(
+            "item" => \SOAP::Data->value(
+                SOAP::Data->name(
+                    "itemSummary" => \SOAP::Data->value(
+                        SOAP::Data->name(
+                            "description" => $accountline->description
+                        ),
+                        SOAP::Data->name( "amountInMinorUnits" => $amount ),
+                        SOAP::Data->name(
+                            "reference" => $accountline->accountlines_id
+                        ),
+                        SOAP::Data->name(
+                            "displayableReference" =>
+                              $accountline->accountlines_id
+                        ),
+                    ),
+                    SOAP::Data->name( "quantity" => 1 ),
+                    SOAP::Data->name(
+                        "lineId" => $accountline->accountlines_id
+                    ),
+                ),
+            ),
+        );
+        push @items, $item_SOAP;
     }
 
-    $sale->appendChild($items);
-
-    # summary
-    my $saleSummary = $xml->createElement('saleSummary');
-    my $description = $xml->createElement('description');
-    $description->appendTextNode('Library Payment');
-    $saleSummary->appendChild($description);
-    my $summary_amountInMinorUnits = $xml->createElement('amountInMinorUnits');
-    $summary_amountInMinorUnits->appendTextNode($sum_amountInMinorUnits);
-    $saleSummary->appendChild($summary_amountInMinorUnits);
-    $sale->appendChild($saleSummary);
-
-    $root->appendChild($sale);
-
-    # Finalise XML Document
-    $xml->setDocumentElement($root);
-    my $string = $xml->toString();
-
     my $portal = $self->retrieve_data('Pay360Portal');
-    warn "request: \n" . $string . "\n\n";
-    my $tx = $ua->post( $portal => form => { xml => $string } );
 
-    my $response = $tx->result->to_string;
+    # Construct SOAP POST
+    my $scpSimpleInvoke = SOAP::Data->name(
+        'scpSimpleInvokeRequest' => \SOAP::Data->value(
+            SOAP::Data->name(
+                "credentials" => \SOAP::Data->name(
+                    "subject" => \SOAP::Data->value(
+                        SOAP::Data->name( "subjectType" => 'CapitaPortal' ),
+                        SOAP::Data->name( "identifier"  => $Pay360SiteID ),
+                        SOAP::Data->name( "systemCode"  => 'SCP' ),
+                    ),
+                ),
+            ),
+            SOAP::Data->name(
+                "requestIdentification" => \SOAP::Data->value(
+                    SOAP::Data->name(
+                        "uniqueReference" => $transaction_id
+                    ),
+                    SOAP::Data->name( "timeStamp" => $stamp ),
+                ),
+            ),
+            SOAP::Data->name(
+                "signature" => \SOAP::Data->value(
+                    SOAP::Data->name( "algorithm" => 'Original' ),
+                    SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
+                    SOAP::Data->name( "digest"    => $current_digest ),
+                ),
+            ),
+            SOAP::Data->name( "requestType" => 'payOnly' ),
+            SOAP::Data->name( "requestId"   => $transaction_id ),
+            SOAP::Data->name(
+                "routing" => \SOAP::Data->value(
+                    SOAP::Data->name( "returnUrl" => $callback_url ),
+                    SOAP::Data->name( "backUrl"   => $cancel_url ),
+                    SOAP::Data->name( "siteId"    => $Pay360SiteID ),
+                    SOAP::Data->name( "scpId"     => $Pay360PortalID ),
+                ),
+            ),
+            SOAP::Data->name( "panEntryMethod" => 'ECOM' ),
+            SOAP::Data->name(
+                "sale" => \SOAP::Data->value(
+                    SOAP::Data->name(
+                        "saleSummary" => \SOAP::Data->value(
+                            SOAP::Data->name(
+                                "description" => 'Library Payment'
+                            ),
+                            SOAP::Data->name(
+                                "amountInMinorUnits" => $sum_amountInMinorUnits
+                            ),
+                        ),
+                    ),
+                    SOAP::Data->name( "items" => @items ),
+                ),
+            ),
+        ),
+    );
+
+    my $result = $scpService->scpSimpleInvoke($scpSimpleInvoke);
     use Data::Dumper;
-    warn "response: ". Dumper($response);
+    warn Dumper($result);
 
 }
 
