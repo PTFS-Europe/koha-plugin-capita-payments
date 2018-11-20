@@ -23,7 +23,7 @@ use Mojo::Util qw(b64_decode);
 use Digest::SHA qw(hmac_sha256_base64);
 use Time::Moment;
 
-use Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService;
+use Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService qw(scpSimpleInvoke);
 
 ## Here we set our plugin version
 our $VERSION = "00.00.01";
@@ -124,8 +124,8 @@ sub opac_online_payment_begin {
     #################
     my $Pay360SiteID = $self->retrieve_data('Pay360SiteID');
     my $Pay360HMACID = $self->retrieve_data('Pay360HMACID');
-    my $reqRef                = $transaction_id;
-    my $stamp     = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
+    my $reqRef       = $transaction_id;
+    my $stamp        = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
     my $current_digest =
       $self->get_digest( 'CapitaPortal', $Pay360SiteID, $reqRef, $stamp,
         'Original', $Pay360HMACID );
@@ -138,99 +138,147 @@ sub opac_online_payment_begin {
     my $accountlines           = $schema->resultset('Accountline')
       ->search( { accountlines_id => \@accountline_ids } );
     my @items;
+#    my @items_SOAP;
     for my $accountline ( $accountlines->all ) {
         my $amount = sprintf "%.2f", $accountline->amountoutstanding;
         $amount                 = $amount * 100;
         $sum_amountInMinorUnits = $sum_amountInMinorUnits + $amount;
 
+        my $item = {
+            itemSummary => {
+                description          => $accountline->description,
+                amountInMinorUnits   => $amount,
+                reference            => $accountline->accountlines_id,
+                displayableReference => $accountline->accountlines_id,
+            },
+            quantity => 1,
+            lineId   => $accountline->accountlines_id,
+        };
+        push @items, $item;
+
         # SOAP::Lite
-        my $item_SOAP = SOAP::Data->name(
-            "item" => \SOAP::Data->value(
-                SOAP::Data->name(
-                    "itemSummary" => \SOAP::Data->value(
-                        SOAP::Data->name(
-                            "description" => $accountline->description
-                        ),
-                        SOAP::Data->name( "amountInMinorUnits" => $amount ),
-                        SOAP::Data->name(
-                            "reference" => $accountline->accountlines_id
-                        ),
-                        SOAP::Data->name(
-                            "displayableReference" =>
-                              $accountline->accountlines_id
-                        ),
-                    ),
-                    SOAP::Data->name( "quantity" => 1 ),
-                    SOAP::Data->name(
-                        "lineId" => $accountline->accountlines_id
-                    ),
-                ),
-            ),
-        );
-        push @items, $item_SOAP;
+#        my $item_SOAP = SOAP::Data->name(
+#            "item" => \SOAP::Data->value(
+#                SOAP::Data->name(
+#                    "itemSummary" => \SOAP::Data->value(
+#                        SOAP::Data->name(
+#                            "description" => $accountline->description
+#                        ),
+#                        SOAP::Data->name( "amountInMinorUnits" => $amount ),
+#                        SOAP::Data->name(
+#                            "reference" => $accountline->accountlines_id
+#                        ),
+#                        SOAP::Data->name(
+#                            "displayableReference" =>
+#                              $accountline->accountlines_id
+#                        ),
+#                    ),
+#                    SOAP::Data->name( "quantity" => 1 ),
+#                    SOAP::Data->name(
+#                        "lineId" => $accountline->accountlines_id
+#                    ),
+#                ),
+#            ),
+#        );
+#        push @items_SOAP, $item_SOAP;
     }
 
     my $portal = $self->retrieve_data('Pay360Portal');
 
     # Construct SOAP POST
-    my $scpSimpleInvoke = SOAP::Data->name(
-        'scpSimpleInvokeRequest' => \SOAP::Data->value(
-            SOAP::Data->name(
-                "credentials" => \SOAP::Data->name(
-                    "subject" => \SOAP::Data->value(
-                        SOAP::Data->name( "subjectType" => 'CapitaPortal' ),
-                        SOAP::Data->name( "identifier"  => $Pay360SiteID ),
-                        SOAP::Data->name( "systemCode"  => 'SCP' ),
-                    ),
-                ),
-            ),
-            SOAP::Data->name(
-                "requestIdentification" => \SOAP::Data->value(
-                    SOAP::Data->name(
-                        "uniqueReference" => $transaction_id
-                    ),
-                    SOAP::Data->name( "timeStamp" => $stamp ),
-                ),
-            ),
-            SOAP::Data->name(
-                "signature" => \SOAP::Data->value(
-                    SOAP::Data->name( "algorithm" => 'Original' ),
-                    SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
-                    SOAP::Data->name( "digest"    => $current_digest ),
-                ),
-            ),
-            SOAP::Data->name( "requestType" => 'payOnly' ),
-            SOAP::Data->name( "requestId"   => $transaction_id ),
-            SOAP::Data->name(
-                "routing" => \SOAP::Data->value(
-                    SOAP::Data->name( "returnUrl" => $callback_url ),
-                    SOAP::Data->name( "backUrl"   => $cancel_url ),
-                    SOAP::Data->name( "siteId"    => $Pay360SiteID ),
-                    SOAP::Data->name( "scpId"     => $Pay360PortalID ),
-                ),
-            ),
-            SOAP::Data->name( "panEntryMethod" => 'ECOM' ),
-            SOAP::Data->name(
-                "sale" => \SOAP::Data->value(
-                    SOAP::Data->name(
-                        "saleSummary" => \SOAP::Data->value(
-                            SOAP::Data->name(
-                                "description" => 'Library Payment'
-                            ),
-                            SOAP::Data->name(
-                                "amountInMinorUnits" => $sum_amountInMinorUnits
-                            ),
-                        ),
-                    ),
-                    SOAP::Data->name( "items" => @items ),
-                ),
-            ),
-        ),
-    );
+#    my $scpSimpleInvoke = SOAP::Data->name(
+#        'scpSimpleInvokeRequest' => \SOAP::Data->value(
+#            SOAP::Data->name(
+#                "credentials" => \SOAP::Data->name(
+#                    "subject" => \SOAP::Data->value(
+#                        SOAP::Data->name( "subjectType" => 'CapitaPortal' ),
+#                        SOAP::Data->name( "identifier"  => $Pay360SiteID ),
+#                        SOAP::Data->name( "systemCode"  => 'SCP' ),
+#                    ),
+#                ),
+#                SOAP::Data->name(
+#                    "requestIdentification" => \SOAP::Data->value(
+#                        SOAP::Data->name(
+#                            "uniqueReference" => $transaction_id
+#                        ),
+#                        SOAP::Data->name( "timeStamp" => $stamp ),
+#                    ),
+#                ),
+#                SOAP::Data->name(
+#                    "signature" => \SOAP::Data->value(
+#                        SOAP::Data->name( "algorithm" => 'Original' ),
+#                        SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
+#                        SOAP::Data->name( "digest"    => $current_digest ),
+#                    ),
+#                ),
+#            ),
+#            SOAP::Data->name( "requestType" => 'payOnly' ),
+#            SOAP::Data->name( "requestId"   => $transaction_id ),
+#            SOAP::Data->name(
+#                "routing" => \SOAP::Data->value(
+#                    SOAP::Data->name( "returnUrl" => $callback_url ),
+#                    SOAP::Data->name( "backUrl"   => $cancel_url ),
+#                    SOAP::Data->name( "siteId"    => $Pay360SiteID ),
+#                    SOAP::Data->name( "scpId"     => $Pay360PortalID ),
+#                ),
+#            ),
+#            SOAP::Data->name( "panEntryMethod" => 'ECOM' ),
+#            SOAP::Data->name(
+#                "sale" => \SOAP::Data->value(
+#                    SOAP::Data->name(
+#                        "saleSummary" => \SOAP::Data->value(
+#                            SOAP::Data->name(
+#                                "description" => 'Library Payment'
+#                            ),
+#                            SOAP::Data->name(
+#                                "amountInMinorUnits" => $sum_amountInMinorUnits
+#                            ),
+#                        ),
+#                    ),
+#                    SOAP::Data->name( "items" => @items_SOAP ),
+#                ),
+#            ),
+#        ),
+#    );
 
-    my $result = $scpService->scpSimpleInvoke($scpSimpleInvoke);
-    use Data::Dumper;
-    warn Dumper($result);
+    my $soap_hash = {
+        credentials => {
+            subject => {
+                subjectType => 'CapitaPortal',
+                identifier  => $Pay360SiteID,
+                systemCode  => 'SCP'
+            },
+            requestIdentification => {
+                uniqueReference => $transaction_id,
+                timeStamp       => $stamp
+            },
+            signature => {
+                algorithm => 'Original',
+                hmacKeyID => $Pay360HMACID,
+                digest    => $current_digest
+            },
+            requestType => 'payOnly',
+            requestId   => $transaction_id,
+            routing     => {
+                returnUrl => $callback_url,
+                backUrl   => $cancel_url,
+                siteId    => $Pay360SiteID,
+                scpId     => $Pay360PortalID,
+            },
+            panEntryMethod => 'ECOM',
+            sale           => {
+                saleSummary => {
+                    description        => 'Library Payment',
+                    amountInMinorUnits => $sum_amountInMinorUnits,
+                },
+                items => \@items
+            }
+        }
+    };
+
+    warn "before scpSimpleInvoke";
+    my $result = scpSimpleInvoke(scpSimpleInvokeRequest => $soap_hash);
+    warn "after scpSimpleInvoke";
 
 }
 
