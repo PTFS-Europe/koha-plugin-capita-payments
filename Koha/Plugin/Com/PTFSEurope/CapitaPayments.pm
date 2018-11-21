@@ -204,20 +204,20 @@ sub opac_online_payment_begin {
                             SOAP::Data->name( "systemCode"  => 'SCP' ),
                         ),
                     ),
-                ),
-                SOAP::Data->name(
-                    "requestIdentification" => \SOAP::Data->value(
-                        SOAP::Data->name(
-                            "uniqueReference" => $transaction_id
+                    SOAP::Data->name(
+                        "requestIdentification" => \SOAP::Data->value(
+                            SOAP::Data->name(
+                                "uniqueReference" => $transaction_id
+                            ),
+                            SOAP::Data->name( "timeStamp" => $stamp ),
                         ),
-                        SOAP::Data->name( "timeStamp" => $stamp ),
                     ),
-                ),
-                SOAP::Data->name(
-                    "signature" => \SOAP::Data->value(
-                        SOAP::Data->name( "algorithm" => 'Original' ),
-                        SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
-                        SOAP::Data->name( "digest"    => $current_digest ),
+                    SOAP::Data->name(
+                        "signature" => \SOAP::Data->value(
+                            SOAP::Data->name( "algorithm" => 'Original' ),
+                            SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
+                            SOAP::Data->name( "digest"    => $current_digest ),
+                        ),
                     ),
                 ),
             )->uri(
