@@ -5,12 +5,12 @@ package Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService;
 # -- generated from https://sbsctest.e-paycapita.com/scp/scpws/scpSimpleClient.wsdl
 my %methods = (
 'scpSimpleInvoke' => {
-    endpoint => 'https://sbsctest.e-paycapita.com:443/scp/scpws',
+    endpoint => 'https://sbsctest.e-paycapita.com/scp/scpws/',
     soapaction => '',
     namespace => 'http://www.capita-software-services.com/scp/simple',
-    parameters => [
-      SOAP::Data->new(name => 'scpSimpleInvokeRequest', type => 'scpSimpleInvokeRequest', attr => {}),
-    ], # end parameters
+    #    parameters => [
+    #  SOAP::Data->new(name => 'scpSimpleInvokeRequest', type => 'scpSimpleInvokeRequest', attr => {}),
+    #], # end parameters
   }, # end scpSimpleInvoke
 'scpSimpleQuery' => {
     endpoint => 'https://sbsctest.e-paycapita.com:443/scp/scpws',
@@ -48,31 +48,44 @@ sub _call {
     my @templates = @{$method{parameters}};
     my @parameters = ();
     foreach my $param (@_) {
+        warn "param: $param";
         if (@templates) {
+            warn "templates";
             my $template = shift @templates;
             my ($prefix,$typename) = SOAP::Utils::splitqname($template->type);
+            warn "typename:" . $typename;
             my $method = 'as_'.$typename;
             # TODO - if can('as_'.$typename) {...}
             my $result = $self->serializer->$method($param, $template->name, $template->type, $template->attr);
+            warn "result: " . $result;
             push(@parameters, $template->value($result->[2]));
         }
         else {
+            warn "passing param as is";
             push(@parameters, $param);
         }
     }
     $self->endpoint($method{endpoint})
        ->ns($method{namespace})
        ->on_action(sub{qq!"$method{soapaction}"!});
-  $self->serializer->register_ns("http://www.capita-software-services.com/scp/simple","sch2");
-  $self->serializer->register_ns("http://www.capita-software-services.com/scp/simple","tns");
-  $self->serializer->register_ns("https://support.capita-software.co.uk/selfservice/?commonFoundation","sch1");
-  $self->serializer->register_ns("http://schemas.xmlsoap.org/wsdl/","wsdl");
-  $self->serializer->register_ns("http://www.capita-software-services.com/scp/base","sch3");
-  $self->serializer->register_ns("http://www.capita-software-services.com/portal-api","sch0");
+  $self->serializer->register_ns("http://www.capita-software-services.com/scp/simple","simple");
+  #$self->serializer->register_ns("https://support.capita-software.co.uk/selfservice/?commonFoundation","sch1");
+  #$self->serializer->register_ns("http://schemas.xmlsoap.org/wsdl/","wsdl");
+  $self->serializer->register_ns("http://www.capita-software-services.com/scp/base","scpbase");
+  #$self->serializer->register_ns("http://www.capita-software-services.com/portal-api","sch0");
+  warn "calling SUPER::call($method => @parameters)";
+    my $serialized = $self->serializer->serialize($parameters[0]);
+    warn $serialized;
     my $som = $self->SUPER::call($method => @parameters);
     if ($self->want_som) {
         return $som;
     }
+    warn "is SOAP::SOM" if UNIVERSAL::isa($som => 'SOAP::SOM');
+    if ($som->fault) { die $som->fault->faultstring };
+    use Data::Dumper;
+    my $root = $som->root;
+    warn Dumper($root);
+    warn "SOAP::SOM->result: " .$som->result; 
     UNIVERSAL::isa($som => 'SOAP::SOM') ? wantarray ? $som->paramsall : $som->result : $som;
 }
 
@@ -90,6 +103,7 @@ no strict 'refs';
 for my $method (@EXPORT_OK) {
     my %method = %{$methods{$method}};
     *$method = sub {
+        warn "called $method\n";
         my $self = UNIVERSAL::isa($_[0] => __PACKAGE__)
             ? ref $_[0]
                 ? shift # OBJECT
