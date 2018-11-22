@@ -13,21 +13,26 @@ use Modern::Perl;
 use base qw(Koha::Plugins::Base);
 
 use C4::Context;
+use C4::Circulation;
 use C4::Auth;
+
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Patrons;
 
-use XML::LibXML;
 use Mojo::Util qw(b64_decode);
 use Digest::SHA qw(hmac_sha256_base64);
 use Time::Moment;
+use File::Basename;
+use Data::GUID;
 
-use Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService
-  qw(scpSimpleInvoke);
+use XML::Compile::WSDL11;
+use XML::Compile::SOAP11;
+use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
 our $VERSION = "00.00.01";
+our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional
 our $metadata = {
@@ -42,9 +47,13 @@ our $metadata = {
       . 'Capita Educations payments platform.',
 };
 
-# A local useragent
-our $scpService =
-  Koha::Plugin::Com::PTFSEurope::CapitaPayments::scpService->new;
+our $root = dirname(__FILE__);
+our $wsdl =
+  XML::Compile::WSDL11->new( $root . '/CapitaPayments/scpSimpleClient.wsdl' );
+$wsdl->importDefinitions( $root . '/CapitaPayments/scpSimple.xsd' );
+$wsdl->importDefinitions( $root . '/CapitaPayments/scpBaseTypes.xsd' );
+$wsdl->importDefinitions( $root . '/CapitaPayments/commonPaymentTypes.xsd' );
+$wsdl->importDefinitions( $root . '/CapitaPayments/commonFoundationTypes.xsd' );
 
 sub new {
     my ( $class, $args ) = @_;
@@ -78,61 +87,41 @@ sub opac_online_payment_begin {
     my $cgi    = $self->{'cgi'};
     my $schema = Koha::Database->new()->schema();
 
-    my ( $template, $borrowernumber ) = get_template_and_user(
-        {
-            template_name   => $self->mbf_path('opac_online_payment_begin.tt'),
-            query           => $cgi,
-            type            => 'opac',
-            authnotrequired => 0,
-            is_plugin       => 1,
-        }
-    );
+    my ( $borrowernumber, $cookie, $sessionID ) =
+      checkauth( $cgi, 0, undef, 'opac' );
+
+    # Generate unique transaction id
+    my $transactionGUID = Data::GUID->new->as_string;
 
     # Get the borrower
     my $borrower_result = Koha::Patrons->find($borrowernumber);
 
-    # Create a transaction
-    my $dbh   = C4::Context->dbh;
-    my $table = $self->get_qualified_table_name('pay360_transactions');
-    my $sth = $dbh->prepare("INSERT INTO $table (`transaction_id`) VALUES (?)");
-    $sth->execute("NULL");
-
-    my $transaction_id =
-      $dbh->last_insert_id( undef, undef,
-        qw(pay360_transactions transaction_id) );
-
-    # Construct redirect URI
-    my $redirect = C4::Context->preference('OPACBaseURL')
+    # Construct return URI
+    my $return = C4::Context->preference('OPACBaseURL')
       . "/cgi-bin/koha/opac-account-pay-return.pl";
-    my $redirect_url = URI->new($redirect);
-    $redirect_url->query_form(
+    my $returnURL = URI->new($return);
+    $returnURL->query_form(
         {
             payment_method => scalar $cgi->param('payment_method'),
-            transaction_id => $transaction_id
+            txn            => $transactionGUID
         }
     );
-
-    # Construct callback URI
-    my $callback_url =
-        C4::Context->preference('OPACBaseURL')
-      . $self->get_plugin_http_path()
-      . "/callback.pl";
+    $returnURL = $returnURL->as_string;
 
     # Construct cancel URI
-    my $cancel_url =
+    my $cancelURL =
       C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-account.pl";
 
-    # Add Credentials
-    #################
-    my $Pay360SiteID = $self->retrieve_data('Pay360SiteID');
-    my $Pay360HMACID = $self->retrieve_data('Pay360HMACID');
-    my $reqRef       = $transaction_id;
-    my $stamp        = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
-    my $current_digest =
-      $self->get_digest( 'CapitaPortal', $Pay360SiteID, $reqRef, $stamp,
-        'Original', $Pay360HMACID );
-
+    # Credentials
+    my $Pay360SiteID   = $self->retrieve_data('Pay360SiteID');
+    my $Pay360HMACID   = $self->retrieve_data('Pay360HMACID');
     my $Pay360PortalID = $self->retrieve_data('Pay360PortalID');
+    my $requestGUID    = Data::GUID->new->as_string;
+    my $timeStamp      = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
+    my $currentDigest  = $self->get_digest(
+        'CapitaPortal', $Pay360PortalID, $requestGUID, $timeStamp,
+        'Original',     $Pay360HMACID
+    );
 
     # items
     my $sum_amountInMinorUnits = 0;
@@ -140,7 +129,6 @@ sub opac_online_payment_begin {
     my $accountlines           = $schema->resultset('Accountline')
       ->search( { accountlines_id => \@accountline_ids } );
     my @items;
-    my @items_SOAP;
     for my $accountline ( $accountlines->all ) {
         my $amount = sprintf "%.2f", $accountline->amountoutstanding;
         $amount                 = $amount * 100;
@@ -148,7 +136,7 @@ sub opac_online_payment_begin {
 
         my $item = {
             itemSummary => {
-                description          => $accountline->description,
+                description          => $accountline->description . "minlength",
                 amountInMinorUnits   => $amount,
                 reference            => $accountline->accountlines_id,
                 displayableReference => $accountline->accountlines_id,
@@ -156,221 +144,85 @@ sub opac_online_payment_begin {
             quantity => 1,
             lineId   => $accountline->accountlines_id,
         };
-        push @items, $item;
-
-        # SOAP::Lite
-        my $item_SOAP = SOAP::Data->name(
-            "item" => \SOAP::Data->value(
-                SOAP::Data->name(
-                    "itemSummary" => \SOAP::Data->value(
-                        SOAP::Data->name(
-                            "description" => $accountline->description
-                        ),
-                        SOAP::Data->name( "amountInMinorUnits" => $amount ),
-                        SOAP::Data->name(
-                            "reference" => $accountline->accountlines_id
-                        ),
-                        SOAP::Data->name(
-                            "displayableReference" =>
-                              $accountline->accountlines_id
-                        ),
-                    ),
-                )->uri('http://www.capita-software-services.com/scp/base')
-                  ->prefix('scpbase'),
-                SOAP::Data->name( "quantity" => 1 )
-                  ->uri('http://www.capita-software-services.com/scp/base')
-                  ->prefix('scpbase'),
-                SOAP::Data->name(
-                    "lineId" => $accountline->accountlines_id
-                )->uri('http://www.capita-software-services.com/scp/base')
-                  ->prefix('scpbase'),
-            ),
-        )->uri('http://www.capita-software-services.com/scp/simple')
-          ->prefix('simple');
-        push @items_SOAP, $item_SOAP;
+        push @items, { item => $item };
     }
 
-    my $portal = $self->retrieve_data('Pay360Portal');
-
-    # Construct SOAP POST
-    my $scpSimpleInvoke = SOAP::Data->name(
-        'scpSimpleInvokeRequest' => \SOAP::Data->value(
-            SOAP::Data->name(
-                "credentials" => \SOAP::Data->value(
-                    SOAP::Data->name(
-                        "subject" => \SOAP::Data->value(
-                            SOAP::Data->name( "subjectType" => 'CapitaPortal' ),
-                            SOAP::Data->name( "identifier"  => $Pay360SiteID ),
-                            SOAP::Data->name( "systemCode"  => 'SCP' ),
-                        ),
-                    ),
-                    SOAP::Data->name(
-                        "requestIdentification" => \SOAP::Data->value(
-                            SOAP::Data->name(
-                                "uniqueReference" => $transaction_id
-                            ),
-                            SOAP::Data->name( "timeStamp" => $stamp ),
-                        ),
-                    ),
-                    SOAP::Data->name(
-                        "signature" => \SOAP::Data->value(
-                            SOAP::Data->name( "algorithm" => 'Original' ),
-                            SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
-                            SOAP::Data->name( "digest"    => $current_digest ),
-                        ),
-                    ),
-                ),
-            )->uri(
-'https://support.capita-software.co.uk/selfservice/?commonFoundation'
-            ),
-            SOAP::Data->name( "requestType" => 'payOnly' )
-              ->uri('http://www.capita-software-services.com/scp/base')
-              ->prefix('scpbase'),
-            SOAP::Data->name( "requestId" => $transaction_id )
-              ->uri('http://www.capita-software-services.com/scp/base')
-              ->prefix('scpbase'),
-            SOAP::Data->name(
-                "routing" => \SOAP::Data->value(
-                    SOAP::Data->name( "returnUrl" => $callback_url )
-                      ->uri('http://www.capita-software-services.com/scp/base')
-                      ->prefix('scpbase'),
-                    SOAP::Data->name( "backUrl" => $cancel_url )
-                      ->uri('http://www.capita-software-services.com/scp/base')
-                      ->prefix('scpbase'),
-                    SOAP::Data->name( "siteId" => $Pay360SiteID )
-                      ->uri('http://www.capita-software-services.com/scp/base')
-                      ->prefix('scpbase'),
-                    SOAP::Data->name( "scpId" => $Pay360PortalID )
-                      ->uri('http://www.capita-software-services.com/scp/base')
-                      ->prefix('scpbase'),
-                ),
-            )->uri('http://www.capita-software-services.com/scp/base')
-              ->prefix('scpbase'),
-            SOAP::Data->name( "panEntryMethod" => 'ECOM' )
-              ->uri('http://www.capita-software-services.com/scp/base')
-              ->prefix('scpbase'),
-            SOAP::Data->name(
-                "sale" => \SOAP::Data->value(
-                    SOAP::Data->name(
-                        "saleSummary" => \SOAP::Data->value(
-                            SOAP::Data->name(
-                                "description" => 'Library Payment'
-                            )->uri(
-'http://www.capita-software-services.com/scp/base'
-                            )->prefix('scpbase'),
-                            SOAP::Data->name(
-                                "amountInMinorUnits" => $sum_amountInMinorUnits
-                            )->uri(
-'http://www.capita-software-services.com/scp/base'
-                            )->prefix('scpbase'),
-                        ),
-                      )
-                      ->uri('http://www.capita-software-services.com/scp/base')
-                      ->prefix('scpbase'),
-                    SOAP::Data->name( "items" => @items_SOAP )->uri(
-                        'http://www.capita-software-services.com/scp/simple')
-                      ->prefix('simple'),
-                ),
-            )->uri('http://www.capita-software-services.com/scp/simple')
-              ->prefix('simple'),
-        ),
-    )->uri('http://www.capita-software-services.com/scp/simple')
-      ->prefix('simple');
-
-    #    $scpSimpleInvoke = SOAP::Data->value(
-    #        SOAP::Data->name(
-    #            "credentials" => \SOAP::Data->name(
-    #                "subject" => \SOAP::Data->value(
-    #                    SOAP::Data->name( "subjectType" => 'CapitaPortal' ),
-    #                    SOAP::Data->name( "identifier"  => $Pay360SiteID ),
-    #                    SOAP::Data->name( "systemCode"  => 'SCP' ),
-    #                ),
-    #            ),
-    #            SOAP::Data->name(
-    #                "requestIdentification" => \SOAP::Data->value(
-    #                    SOAP::Data->name(
-    #                        "uniqueReference" => $transaction_id
-    #                    ),
-    #                    SOAP::Data->name( "timeStamp" => $stamp ),
-    #                ),
-    #            ),
-    #            SOAP::Data->name(
-    #                "signature" => \SOAP::Data->value(
-    #                    SOAP::Data->name( "algorithm" => 'Original' ),
-    #                    SOAP::Data->name( "hmacKeyID" => $Pay360HMACID ),
-    #                    SOAP::Data->name( "digest"    => $current_digest ),
-    #                ),
-    #            ),
-    #        ),
-    #        SOAP::Data->name( "requestType" => 'payOnly' ),
-    #        SOAP::Data->name( "requestId"   => $transaction_id ),
-    #        SOAP::Data->name(
-    #            "routing" => \SOAP::Data->value(
-    #                SOAP::Data->name( "returnUrl" => $callback_url ),
-    #                SOAP::Data->name( "backUrl"   => $cancel_url ),
-    #                SOAP::Data->name( "siteId"    => $Pay360SiteID ),
-    #                SOAP::Data->name( "scpId"     => $Pay360PortalID ),
-    #            ),
-    #        ),
-    #        SOAP::Data->name( "panEntryMethod" => 'ECOM' ),
-    #        SOAP::Data->name(
-    #            "sale" => \SOAP::Data->value(
-    #                SOAP::Data->name(
-    #                    "saleSummary" => \SOAP::Data->value(
-    #                        SOAP::Data->name(
-    #                            "description" => 'Library Payment'
-    #                        ),
-    #                        SOAP::Data->name(
-    #                            "amountInMinorUnits" => $sum_amountInMinorUnits
-    #                        ),
-    #                    ),
-    #                ),
-    #                SOAP::Data->name( "items" => @items_SOAP ),
-    #            ),
-    #        ),
-    #    );
-
-    my $soap_hash = {
+    my $request = {
         credentials => {
             subject => {
                 subjectType => 'CapitaPortal',
-                identifier  => $Pay360SiteID,
+                identifier  => $Pay360PortalID,
                 systemCode  => 'SCP'
             },
             requestIdentification => {
-                uniqueReference => $transaction_id,
-                timeStamp       => $stamp
+                uniqueReference => $requestGUID,
+                timeStamp       => $timeStamp
             },
             signature => {
                 algorithm => 'Original',
                 hmacKeyID => $Pay360HMACID,
-                digest    => $current_digest
+                digest    => $currentDigest
             },
-            requestType => 'payOnly',
-            requestId   => $transaction_id,
-            routing     => {
-                returnUrl => $callback_url,
-                backUrl   => $cancel_url,
-                siteId    => $Pay360SiteID,
-                scpId     => $Pay360PortalID,
+        },
+        requestType => 'payOnly',
+        requestId   => $transactionGUID,
+        routing     => {
+            returnUrl => $returnURL,
+            backUrl   => $cancelURL,
+            siteId    => $Pay360SiteID,
+            scpId     => $Pay360PortalID,
+        },
+        panEntryMethod => 'ECOM',
+        sale           => {
+            saleSummary => {
+                description        => 'Library Payment',
+                amountInMinorUnits => $sum_amountInMinorUnits,
             },
-            panEntryMethod => 'ECOM',
-            sale           => {
-                saleSummary => {
-                    description        => 'Library Payment',
-                    amountInMinorUnits => $sum_amountInMinorUnits,
-                },
-                items => \@items
-            }
+            items => @items
         }
     };
 
-    warn "before scpSimpleInvoke";
-    my $result = $scpService->scpSimpleInvoke($scpSimpleInvoke);
-    use Data::Dumper;
-    warn $result;
-    warn "after scpSimpleInvoke";
+    my $portal = $self->retrieve_data('Pay360Portal');
+    my $scpSimpleInvoke =
+      $wsdl->compileClient( operation => 'scpSimpleInvoke' );
 
+    my $response = $scpSimpleInvoke->($request);
+
+    # Handle errors
+    if (
+        exists(
+            $response->{'scpSimpleInvokeResponse'}->{'invokeResult'}
+              ->{'errorDetails'}
+        )
+      )
+    {
+        use Data::Dumper;
+        warn Dumper( $response->{'scpSimpleInvokeResponse'}->{'invokeResult'}
+              ->{'errorDetails'} );
+        exit;    #FIXME: Return error page here
+    }
+
+    # Sucess
+    else {
+
+        # Store the transaction
+        my $dbh   = C4::Context->dbh;
+        my $table = $self->get_qualified_table_name('pay360_transactions');
+        my $sth =
+          $dbh->prepare(
+"INSERT INTO $table (`transaction_guid`, `transaction_reference`, `transaction_state`) VALUES (?, ?, ?)"
+          );
+        $sth->execute(
+            $transactionGUID,
+            $response->{'scpSimpleInvokeResponse'}->{'scpReference'},
+            $response->{'scpSimpleInvokeResponse'}->{'transactionState'}
+        );
+
+        print $cgi->redirect(
+            $response->{'scpSimpleInvokeResponse'}->{'invokeResult'}
+              ->{'redirectUrl'} );
+        exit;
+    }
 }
 
 =head2 opac_online_payment_end
@@ -393,38 +245,145 @@ sub opac_online_payment_end {
         }
     );
 
-    my $transaction_id = $cgi->param('transaction_id');
+    my $transactionGUID = $cgi->param('txn');
 
-    # Check payment went through here
+    # Credentials
+    my $Pay360SiteID   = $self->retrieve_data('Pay360SiteID');
+    my $Pay360HMACID   = $self->retrieve_data('Pay360HMACID');
+    my $Pay360PortalID = $self->retrieve_data('Pay360PortalID');
+    my $requestGUID    = Data::GUID->new->as_string;
+    my $timeStamp      = Time::Moment->now_utc->strftime('%Y%m%d%H%M%S');
+    my $currentDigest  = $self->get_digest(
+        'CapitaPortal', $Pay360PortalID, $transactionGUID, $timeStamp,
+        'Original',     $Pay360HMACID
+    );
+
+    # Fetch scpReference
     my $table = $self->get_qualified_table_name('pay360_transactions');
     my $dbh   = C4::Context->dbh;
     my $sth   = $dbh->prepare(
-        "SELECT accountline_id FROM $table WHERE transaction_id = ?");
-    $sth->execute($transaction_id);
-    my ($accountline_id) = $sth->fetchrow_array();
+        "SELECT transaction_reference FROM $table WHERE transaction_guid = ?");
+    $sth->execute($transactionGUID);
+    my ($scpReference) = $sth->fetchrow_array();
 
-    my $line =
-      Koha::Account::Lines->find( { accountlines_id => $accountline_id } );
-    my $transaction_value = $line->amount;
-    my $transaction_amount = sprintf "%.2f", $transaction_value;
-    $transaction_amount =~ s/-//g;
+    # Construct request
+    my $request = {
+        credentials => {
+            subject => {
+                subjectType => 'CapitaPortal',
+                identifier  => $Pay360PortalID,
+                systemCode  => 'SCP'
+            },
+            requestIdentification => {
+                uniqueReference => $requestGUID,
+                timeStamp       => $timeStamp
+            },
+            signature => {
+                algorithm => 'Original',
+                hmacKeyID => $Pay360HMACID,
+                digest    => $currentDigest
+            },
+        },
+        siteId       => $Pay360SiteID,
+        scpReference => $scpReference
+    };
 
-    if ( defined($transaction_value) ) {
-        $template->param(
-            borrower      => scalar Koha::Patrons->find($borrowernumber),
-            message       => 'valid_payment',
-            message_value => $transaction_amount
-        );
+    my $portal = $self->retrieve_data('Pay360Portal');
+    my $scpSimpleQuery = $wsdl->compileClient( operation => 'scpSimpleQuery' );
+
+    my $response = $scpSimpleQuery->($request);
+
+    # Handle errors
+    if (
+        exists(
+            $response->{'scpSimpleQueryResponse'}->{'paymentResult'}
+              ->{'errorDetails'}
+        )
+      )
+    {
+        use Data::Dumper;
+        warn Dumper( $response->{'scpSimpleQueryResponse'}->{'paymentResult'}
+              ->{'errorDetails'} );
     }
+
+    # Sucess
     else {
-        $template->param(
-            borrower => scalar Koha::Patrons->find($borrowernumber),
-            message  => 'no_amount'
-        );
-    }
 
-    print $cgi->header();
-    print $template->output();
+        my $saleSummary =
+          $response->{'scpSimpleQueryResponse'}->{'paymentResult'}
+          ->{'paymentDetails'}->{'saleSummary'};
+        use Data::Dumper;
+        warn Dumper($response);
+        my @accountline_ids =
+          map { $_->{'lineId'} } @{ $saleSummary->{'items'}->{'itemSummary'} };
+
+        # Record Payment
+        my $borrower = Koha::Patrons->find($borrowernumber);
+        my $lines    = Koha::Account::Lines->search(
+            { accountlines_id => { 'in' => \@accountline_ids } } )->as_list;
+        my $totalpaid = 0;
+        for my $line ( @{$lines} ) {
+            my $amount = sprintf "%.2f", $line->amountoutstanding;
+            $amount    = $amount * 100;
+            $totalpaid = $totalpaid + $amount;
+        }
+        $totalpaid = $totalpaid / 100;
+        my $account = Koha::Account->new( { patron_id => $borrowernumber } );
+        my $accountline_id = $account->pay(
+            {
+                amount     => $totalpaid,
+                note       => 'Pay360 Payment',
+                library_id => $borrower->branchcode,
+                lines      => $lines,
+            }
+        );
+
+        # Link payment to pay360_transactions
+        my $sth = $dbh->prepare(
+            "UPDATE $table SET accountline_id = ? WHERE transaction_guid = ?");
+        $sth->execute( $accountline_id, $transactionGUID );
+
+        # Renew any items as required
+        for my $line ( @{$lines} ) {
+            my $item = Koha::Items->find( { itemnumber => $line->itemnumber } );
+
+            # Renew if required
+            if ( defined( $line->accounttype )
+                && $line->accounttype eq "FU" )
+            {
+                if (
+                    C4::Circulation::CheckIfIssuedToPatron(
+                        $line->borrowernumber, $item->biblionumber
+                    )
+                  )
+                {
+                    my $datedue =
+                      C4::Circulation::AddRenewal( $line->borrowernumber,
+                        $line->itemnumber );
+                    C4::Circulation::_FixOverduesOnReturn(
+                        $line->borrowernumber, $line->itemnumber );
+                }
+            }
+        }
+
+        # Output result
+        if ( defined($totalpaid) ) {
+            $template->param(
+                borrower      => scalar Koha::Patrons->find($borrowernumber),
+                message       => 'valid_payment',
+                message_value => $totalpaid
+            );
+        }
+        else {
+            $template->param(
+                borrower => scalar Koha::Patrons->find($borrowernumber),
+                message  => 'no_amount'
+            );
+        }
+
+        print $cgi->header();
+        print $template->output();
+    }
 }
 
 =head2 configure
@@ -482,6 +441,9 @@ sub install() {
     return C4::Context->dbh->do( "
         CREATE TABLE IF NOT EXISTS $table (
             `transaction_id` INT( 11 ) NOT NULL AUTO_INCREMENT,
+            `transaction_guid` varchar(36) NOT NULL,
+            `transaction_reference` TINYTEXT,
+            `transaction_state` TINYTEXT,
             `accountline_id` INT( 11 ),
             `updated` TIMESTAMP,
             PRIMARY KEY (`transaction_id`)
@@ -497,12 +459,34 @@ sub install() {
 
 sub get_digest {
     my $self = shift;
+    my (
+        $subjectType, $identifier, $uniqueReference,
+        $timestamp,   $algorithm,  $Pay360HMACID
+    ) = @_;
 
-    my $data   = join( '!', @_ );
-    my $key    = b64_decode( $self->retrieve_data('Pay360HMAC') );
+    my @set = (
+        $subjectType, $identifier, $uniqueReference,
+        $timestamp,   $algorithm,  $Pay360HMACID
+    );
+    my $Pay360HMAC = $self->retrieve_data('Pay360HMAC');
+
+    my $data   = join( '!', @set );
+    my $key    = b64_decode($Pay360HMAC);
     my $digest = hmac_sha256_base64( $data, $key );
     while ( length($digest) % 4 ) {
         $digest .= '=';
+    }
+
+    if ($debug) {
+        warn "HmacKey: " . $Pay360HMAC;
+        warn "HmacKeyId: " . $Pay360HMACID;
+        warn "Subject Type: " . $subjectType;
+        warn "Identifier: " . $identifier;
+        warn "Unique Reference: " . $uniqueReference;
+        warn "Algorithm: " . $algorithm;
+        warn "Timestamp: " . $timestamp;
+        warn "String to hash: " . $data;
+        warn "Digest: " . $digest;
     }
 
     return $digest;

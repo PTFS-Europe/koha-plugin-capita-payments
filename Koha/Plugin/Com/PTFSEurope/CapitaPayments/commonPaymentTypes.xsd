@@ -1,0 +1,596 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns="http://www.capita-software-services.com/portal-api"
+targetNamespace="http://www.capita-software-services.com/portal-api"
+version="8.0.0.3">
+	<xs:annotation id="Version">
+		<xs:documentation>Schema Version: 8.0.0.3</xs:documentation>
+		<xs:documentation>Schema Description: Type definitions for use by Secure Bureau Service</xs:documentation>
+	</xs:annotation>
+	<xs:simpleType name="generalVeryShortString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="10" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalShortString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="35" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="50" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalIntermediateString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="100" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalMediumString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="255" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalLongString">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="2048" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalShortStringEmpty">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="0" />
+			<xs:maxLength value="35" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalStringEmpty">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="0" />
+			<xs:maxLength value="50" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalMediumStringEmpty">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="0" />
+			<xs:maxLength value="255" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalLongStringEmpty">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="0" />
+			<xs:maxLength value="2048" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalAmount">
+		<xs:annotation>
+			<xs:documentation>Amount in minor currency units(pence/cents), leading sign</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:int" />
+	</xs:simpleType>
+	<xs:simpleType name="generalAmountPositive">
+		<xs:annotation>
+			<xs:documentation>Amount in minor currency units(pence/cents)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:positiveInteger" />
+	</xs:simpleType>
+	<xs:simpleType name="generalAmountNonZero">
+		<xs:annotation>
+			<xs:documentation>Amount in minor currency units(pence/cents), leading sign, zero not allowed</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:int">
+			<xs:pattern value="[\-+]?[0]*[1-9]\d*" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalInteger">
+		<xs:restriction base="xs:int" />
+	</xs:simpleType>
+	<xs:simpleType name="generalShort">
+		<xs:restriction base="xs:short">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="32767"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalDecimal">
+		<xs:restriction base="xs:decimal">
+			<xs:fractionDigits value="4" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalDecimalPositive">
+		<xs:restriction base="generalDecimal">
+			<xs:minExclusive value="0" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalDate">
+		<xs:annotation>
+			<xs:documentation>Use the xml date/time format eg 2003-09-26T15:32:00</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:dateTime" />
+	</xs:simpleType>
+	<xs:simpleType name="generalDateMMYY">
+		<xs:annotation>
+			<xs:documentation>Date format MMYY</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="(([1][0-2])|([0][1-9]))[0-9][0-9]" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalDateMMYYallow0000">
+		<xs:annotation>
+			<xs:documentation>Date format MMYY</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0][0][0][0]|((([1][0-2])|([0][1-9]))[0-9][0-9])" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalCode">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="5" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="generalBoolean">
+		<xs:restriction base="xs:boolean" />
+	</xs:simpleType>
+	<xs:simpleType name="generalSequenceNumber">
+		<xs:restriction base="xs:positiveInteger">
+			<xs:totalDigits value="5" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="systemCode">
+		<xs:annotation>
+			<xs:documentation>ACP   - AXIS Common Payments</xs:documentation>
+			<xs:documentation>ACR   - AXIS Counter Receipting</xs:documentation>
+			<xs:documentation>ADD   - AXIS Direct Debits</xs:documentation>
+			<xs:documentation>AIM   - AXIS Income Management</xs:documentation>
+			<xs:documentation>AIP   - AXIS Internet Payments</xs:documentation>
+			<xs:documentation>AOS   - AXIS On-line Services</xs:documentation>
+			<xs:documentation>API   - AXIS Payments Interface</xs:documentation>
+			<xs:documentation>APN   - AXIS PAYe.NET</xs:documentation>
+			<xs:documentation>APP   - AXIS Payment Portal</xs:documentation>
+			<xs:documentation>ARP   - AXIS Remittance</xs:documentation>
+			<xs:documentation>ASR   - AXIS Speech Recognition</xs:documentation>
+			<xs:documentation>ATP   - AXIS Telephone Payments</xs:documentation>
+			<xs:documentation>ATT   - AXIS Touch Tone</xs:documentation>
+			<xs:documentation>DIR   - Direct Authorisations from Third Parties</xs:documentation>
+			<xs:documentation>EXT   - EXTERNAL SYSTEM</xs:documentation>
+			<xs:documentation>HPAY  - AXIS Health PAYe.NET</xs:documentation>
+			<xs:documentation>MAPN  - Managed AXIS PAYe.NET</xs:documentation>
+			<xs:documentation>MHPAY - Managed AXIS Health PAYe.NET</xs:documentation>
+			<xs:documentation>MOTO  - AXIS Mail Order Telephone Order</xs:documentation>
+			<xs:documentation>PCR   - Perception</xs:documentation>
+			<xs:documentation>SBS   - Secure Bureau Service</xs:documentation>
+			<xs:documentation>SCM   - AXIS SafeCom</xs:documentation>
+			<xs:documentation>SCP   - AXIS Stored Card Portal</xs:documentation>
+			<xs:documentation>SGW   - AXIS Smart Gateway</xs:documentation>
+			<xs:documentation>SMS   - AXIS Short Message Service</xs:documentation>
+			<xs:documentation>THY   - Thyron</xs:documentation>
+			<xs:documentation>TVWAP - AXIS DigiTV</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="ACP"  />
+			<xs:enumeration value="ACR"  />
+			<xs:enumeration value="ADD"  />
+			<xs:enumeration value="AIM"  />
+			<xs:enumeration value="AIP"  />
+			<xs:enumeration value="AOS"  />
+			<xs:enumeration value="API"  />
+			<xs:enumeration value="APN"  />
+			<xs:enumeration value="APP"  />
+			<xs:enumeration value="ARP"  />
+			<xs:enumeration value="ASR"  />
+			<xs:enumeration value="ATP"  />
+			<xs:enumeration value="ATT"  />
+			<xs:enumeration value="DIR"  />
+			<xs:enumeration value="EXT"  />
+			<xs:enumeration value="HPAY" />
+			<xs:enumeration value="MAPN" />
+			<xs:enumeration value="MHPAY"/>
+			<xs:enumeration value="MOTO" />
+			<xs:enumeration value="PCR"  />
+			<xs:enumeration value="SCM"  />
+			<xs:enumeration value="SCP"  />
+			<xs:enumeration value="SGW"  />
+			<xs:enumeration value="SMS"  />
+			<xs:enumeration value="THY"  />
+			<xs:enumeration value="TVWAP"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="systemCodeDirect">
+		<xs:annotation>
+			<xs:documentation>DIR  - Direct Authorisations from Third Parties</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="DIR" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="siteID">
+		<xs:restriction base="xs:unsignedShort">
+			<xs:maxInclusive value="32767" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="uniqueTranID">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="12" />
+			<xs:maxLength value="12" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="isoCode">
+		<xs:annotation>
+			<xs:documentation>Three digit ISO code</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{3}" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="userName">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="25" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="sourceCode">
+		<xs:restriction base="generalCode" />
+	</xs:simpleType>
+	<xs:simpleType name="languageCode">
+		<xs:restriction base="xs:string">
+			<xs:length value="2" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="linkCAN">
+		<xs:restriction base="xs:positiveInteger" />
+	</xs:simpleType>
+	<xs:simpleType name="san">
+		<xs:restriction base="xs:positiveInteger" />
+	</xs:simpleType>
+	<xs:simpleType name="recordSource">
+		<xs:annotation>
+			<xs:documentation>0 - Holding</xs:documentation>
+			<xs:documentation>1 - History</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="0" />
+			<xs:enumeration value="1" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="track2Data">
+		<xs:annotation>
+			<xs:documentation>Mandatory if card swiped, otherwise should not be present</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="100" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardNumber">
+		<xs:annotation>
+			<xs:documentation>Mandatory on keyed and chip card transactions, should not be present for swiped</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([0-9]{12,19})" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="issueNumber">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]?[0-9]" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="keySwipe">
+		<xs:annotation>
+			<xs:documentation>0 - Signed voucher</xs:documentation>
+			<xs:documentation>1 - Mail order/telephone order/CNP</xs:documentation>
+			<xs:documentation>2 - Continuous authority</xs:documentation>
+			<xs:documentation>3 - PIN verified (on-line)</xs:documentation>
+			<xs:documentation>4 - PIN verified (off-line)</xs:documentation>
+			<xs:documentation>5 - Signed voucher (swiped)</xs:documentation>
+			<xs:documentation>6 - Signed voucher (keyed)</xs:documentation>
+			<xs:documentation>7 - Unattended device without PIN</xs:documentation>
+			<xs:documentation>8 - PIN verified transaction (recovered after sale)</xs:documentation>
+			<xs:documentation>9 - Signed voucher (recovered after sale)</xs:documentation>
+			<xs:documentation>G - Secure e-commerce transaction with cardholder certificate</xs:documentation>
+			<xs:documentation>H - Non-authenticated security transaction with SET merchant certificate</xs:documentation>
+			<xs:documentation>J - Non-authenticated security transaction without SET merchant certificate (e.g. SSL)</xs:documentation>
+			<xs:documentation>K - Non-secure transaction</xs:documentation>
+			<xs:documentation>R - Reversal (used in reversal file only)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="0" />
+			<xs:enumeration value="1" />
+			<xs:enumeration value="2" />
+			<xs:enumeration value="3" />
+			<xs:enumeration value="4" />
+			<xs:enumeration value="5" />
+			<xs:enumeration value="6" />
+			<xs:enumeration value="7" />
+			<xs:enumeration value="8" />
+			<xs:enumeration value="9" />
+			<xs:enumeration value="G" />
+			<xs:enumeration value="H" />
+			<xs:enumeration value="J" />
+			<xs:enumeration value="K" />
+			<xs:enumeration value="R" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardType">
+		<xs:annotation>
+			<xs:documentation>Mandatory on card transactions</xs:documentation>
+			<xs:documentation>D - Debit Card</xs:documentation>
+			<xs:documentation>C - Credit Card</xs:documentation>
+			<xs:documentation>N - No Auth</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="1" />
+			<xs:enumeration value="D" />
+			<xs:enumeration value="C" />
+			<xs:enumeration value="N" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="merchantNumber">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1" />
+			<xs:maxLength value="20" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardTranType">
+		<xs:annotation>
+			<xs:documentation>Mandatory on card transactions</xs:documentation>       
+			<xs:documentation>09 - Sale, keyed (cardholder not present(CNP), mail order/batch)</xs:documentation>     
+			<xs:documentation>10 - Sale, swiped or chip (cardholder present)</xs:documentation>
+			<xs:documentation>20 - Sale, keyed (cardholder present / magstripe fallback only)</xs:documentation>
+			<xs:documentation>B2 - Sale, e-commerce, keyed (CNP)</xs:documentation>           
+			<xs:documentation>Z1 - Sale, swiped, voice-authorization</xs:documentation>
+			<xs:documentation>Z2 - Sale, keyed, voice-authorization</xs:documentation>
+			<xs:documentation>Z9 - Sale, keyed, voice-authorization (CNP)</xs:documentation>
+			<xs:documentation>47 - Refund, keyed (CNP, mail order/batch)</xs:documentation>     
+			<xs:documentation>58 - Refund, swiped or chip (cardholder present)</xs:documentation>
+			<xs:documentation>61 - Refund, keyed (cardholder present / magstripe fallback only)</xs:documentation>
+			<xs:documentation>B4 - Refund, e-commerce, keyed (CNP)</xs:documentation>
+			<xs:documentation>25 - Sale reversal</xs:documentation>
+			<xs:documentation>86 - Refund reversal</xs:documentation>
+
+
+		</xs:annotation>
+		<xs:restriction base="xs:string">      
+			<xs:enumeration value="09" />
+			<xs:enumeration value="10" />
+			<xs:enumeration value="20" />     
+			<xs:enumeration value="B2" />     
+			<xs:enumeration value="Z1" />
+			<xs:enumeration value="Z2" />     
+			<xs:enumeration value="Z9" />
+			<xs:enumeration value="47" />
+			<xs:enumeration value="58" />
+			<xs:enumeration value="61" />
+			<xs:enumeration value="B4" />
+			<xs:enumeration value="25" />
+			<xs:enumeration value="86" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="eCommerceTerminalType">
+		<xs:annotation>
+			<xs:documentation>For E-commerce transactions</xs:documentation>
+			<xs:documentation>22 - Chip and Pin transaction</xs:documentation>
+			<xs:documentation>25 - Unattended Chip and Pin transaction, controlled by merchant</xs:documentation>
+			<xs:documentation>30 - Secure transaction with cardholder certificate</xs:documentation>
+			<xs:documentation>31 - Non-authenticated security transaction with SET merchant certificate</xs:documentation>
+			<xs:documentation>32 - Non-authenticated security transaction without SET merchant certificate(eg SSL)</xs:documentation>
+			<xs:documentation>33 - No additional information (considered as unsecured)</xs:documentation>
+			<xs:documentation>35 - Unattended Chip and Pin transaction, controlled by cardholder</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="2" />
+			<xs:enumeration value="22" />
+			<xs:enumeration value="25" />
+			<xs:enumeration value="30" />
+			<xs:enumeration value="31" />
+			<xs:enumeration value="32" />
+			<xs:enumeration value="33" />
+			<xs:enumeration value="35" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardSecurityCode">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9][0-9][0-9]?[0-9]" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="houseNumber">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="10" />
+			<xs:minLength value="1" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="postCode">
+		<xs:restriction base="xs:string">
+			<xs:maxLength value="10" />
+			<xs:minLength value="1" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="securityAttempted">
+		<xs:annotation>
+			<xs:documentation>M - MasterCard Secure</xs:documentation>
+			<xs:documentation>V - Verified By Visa</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="M" />
+			<xs:enumeration value="V" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="securityResult">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Y" />
+			<xs:enumeration value="A" />
+			<xs:enumeration value="U" />
+			<xs:enumeration value="N" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="eci">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9][0-9]" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="surchargeType">
+		<xs:annotation>
+			<xs:documentation>F - Fixed Amount</xs:documentation>
+			<xs:documentation>N - None</xs:documentation>
+			<xs:documentation>P - Percentage</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:length value="1" />
+			<xs:enumeration value="F" />
+			<xs:enumeration value="N" />
+			<xs:enumeration value="P" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardMnemonic">
+		<xs:restriction base="xs:string">
+			<xs:length value="4" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="cardDescription">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="VISA" />
+			<xs:enumeration value="MASTERCARD" />
+			<xs:enumeration value="AMERICAN EXPRESS" />
+			<xs:enumeration value="LASER" />
+			<xs:enumeration value="DINERS" />
+			<xs:enumeration value="JCBC" />
+			<xs:enumeration value="NONE" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="statusCode">
+		<xs:annotation>
+			<xs:documentation>0 - Operation completed successfully</xs:documentation>
+			<xs:documentation>Non-zero - Operation failed, more details available in description</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:int" />
+	</xs:simpleType>
+	<xs:simpleType name="responseCode">
+		<xs:annotation>
+			<xs:documentation>Card Authorisation Response Codes:-</xs:documentation>
+			<xs:documentation>From the underlying application. Some examples:</xs:documentation>
+			<xs:documentation>00 - Transaction Authorized</xs:documentation>
+			<xs:documentation>Non-zero - Transaction Not Authorized, some possible values are given below</xs:documentation>
+			<xs:documentation>02 - Referral B</xs:documentation>
+			<xs:documentation>05 - Declined</xs:documentation>
+			<xs:documentation>30 - Bank validation failed, invalid merchant etc</xs:documentation>
+			<xs:documentation>54 - Expired Card</xs:documentation>
+			<xs:documentation>91 - Comms Fault</xs:documentation>
+			<xs:documentation>92 - Manual Auth</xs:documentation>
+			<xs:documentation>Validate Card Response Codes:-</xs:documentation>
+			<xs:documentation>0 - Request processed successfully</xs:documentation>
+			<xs:documentation>10 - Request failed schema validation exception</xs:documentation>
+			<xs:documentation>20 - Request failed data access exception</xs:documentation>
+			<xs:documentation>30 - Request failed validation exception</xs:documentation>
+			<xs:documentation>90 - Request failed other error</xs:documentation>
+			<xs:documentation>Stored Card Response Codes:-</xs:documentation>
+			<xs:documentation>0 - Request processed successfully</xs:documentation>
+			<xs:documentation>5 - Card not found</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9A-Z][0-9]?" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="maskedCardNumber">
+		<xs:annotation>
+			<xs:documentation>Card number with all but first six and last four digits masked with asterisks</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{6}\*+[0-9]{4}" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="responseAVVCVV">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="\d{6}" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="surchargeRate">
+		<xs:annotation>
+			<xs:documentation>Percentage rate on which surcharge is based, not present for fixed rate surcharges</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:decimal" />
+	</xs:simpleType>
+	<xs:simpleType name="cardLastFourDigits">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9][0-9][0-9][0-9]" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="panEntryMethod">
+		<xs:annotation>
+			<xs:documentation>ECOM   - E-Commerce (Default)</xs:documentation>
+			<xs:documentation>CNP    - Card Not Present</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="ECOM" />
+			<xs:enumeration value="CNP" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="portalAction">
+		<xs:annotation>
+			<xs:documentation>authorise (Default)</xs:documentation>
+			<xs:documentation>storeOnly</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="authorise" />
+			<xs:enumeration value="storeOnly" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="phone">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="|\+[1-9][0-9]{8}[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="email">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[^@]+@[^@]+" />
+			<xs:whiteSpace value="replace" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="integrator">
+		<xs:restriction base="xs:positiveInteger" />
+	</xs:simpleType>
+	<xs:simpleType name="lineId">
+		<xs:restriction base="xs:token">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="50"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="bacsReference">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[A-Za-z0-9.\-/&amp; ]{1,18}" />
+		</xs:restriction>
+	</xs:simpleType>	
+	<xs:simpleType name="bankSortCode">
+		<xs:restriction base="xs:token">
+			<xs:pattern value="[0-9]{6}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="bankAccountNumber">
+		<xs:restriction base="xs:token">
+			<xs:pattern value="[0-9]{8}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<!--
+		Accept URLs starting http:// or https:// 
+	 -->
+	<xs:simpleType name="httpUrl">
+		<xs:restriction base="xs:token">
+			<xs:pattern value="https?://.+"></xs:pattern>
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

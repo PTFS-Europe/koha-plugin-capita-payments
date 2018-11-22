@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.capita-software-services.com/scp/simple" 
+	xmlns="http://www.capita-software-services.com/scp/simple"
+	xmlns:scpbase="http://www.capita-software-services.com/scp/base"
+	elementFormDefault="qualified" version="9.3.0.0">
+
+	<xs:import schemaLocation="scpBaseTypes.xsd"
+		namespace="http://www.capita-software-services.com/scp/base" />
+
+	<xs:element name="scpSimpleInvokeRequest" type="scpSimpleInvokeRequest" />
+
+	<xs:element name="scpSimpleInvokeResponse" type="scpbase:scpInvokeResponse" />
+
+	<xs:element name="scpSimpleQueryRequest" type="scpbase:scpQueryRequest" />
+
+	<xs:element name="scpSimpleQueryResponse" type="scpSimpleQueryResponse" />
+
+	<!-- Simple Item Invoke Request -->
+	<xs:complexType name="scpSimpleInvokeRequest">
+		<xs:complexContent>
+			<xs:extension base="scpbase:scpInvokeRequest">
+				<xs:sequence>
+					<xs:element name="sale" type="simpleSale" minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="simpleSale">
+		<xs:complexContent>
+		  <xs:extension base="scpbase:saleBase">
+			<xs:sequence>
+				<xs:element name="postageAndPacking" type="scpbase:postageAndPacking"
+					minOccurs="0" />
+				<xs:element name="surchargeable" type="surchargeable" minOccurs="0" />
+				<xs:element name="items" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="item" type="simpleItem" maxOccurs="unbounded" />
+					</xs:sequence>
+				</xs:complexType>
+			  </xs:element>
+			</xs:sequence>
+		  </xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+ 	<xs:complexType name="surchargeable">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="applyScpConfig">
+					<xs:complexType>
+						<xs:complexContent>
+							<xs:restriction base="xs:anyType"/>
+						</xs:complexContent>
+					</xs:complexType>
+				</xs:element>
+	 			<xs:element name="surcharge" type="scpbase:surchargeItemDetails" />
+ 			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="simpleItem">
+		<xs:complexContent>
+			<xs:extension base="scpbase:itemBase">
+				<xs:sequence>
+					<xs:element name="surchargeable" type="xs:boolean" minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<!-- Simple Item Query Response -->
+	<xs:complexType name="scpSimpleQueryResponse">
+		<xs:complexContent>
+			<xs:extension base="scpbase:scpQueryResponse">
+				<xs:sequence>
+					<xs:element name="paymentResult" type="simplePaymentResult"
+						minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="simplePaymentResult">
+		<xs:complexContent>
+			<xs:extension base="scpbase:paymentResultBase">
+				<xs:choice minOccurs="0">
+					<xs:element name="paymentDetails" type="simplePayment" />
+					<xs:element name="errorDetails" type="scpbase:errorDetails" />
+				</xs:choice>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="simplePayment">
+		<xs:complexContent>
+			<xs:extension base="scpbase:paymentBase">
+				<xs:sequence>
+					<xs:element name="saleSummary" type="simpleSaleSummary" />
+					<xs:element minOccurs="0" name="surchargeDetails" type="scpbase:surchargeDetails" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="simpleSaleSummary">
+		<xs:sequence>
+			<xs:element name="items" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="itemSummary" type="simpleItemSummary" maxOccurs="unbounded" />
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="simpleItemSummary">
+		<xs:complexContent>
+			<xs:extension base="scpbase:itemSummaryBase" />
+		</xs:complexContent>
+	</xs:complexType>
+
+</xs:schema>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.capita-software-services.com/scp/multiAccount" 
+	xmlns="http://www.capita-software-services.com/scp/multiAccount"
+	xmlns:scpbase="http://www.capita-software-services.com/scp/base"
+	elementFormDefault="qualified" version="9.3.0.0">
+
+	<xs:import schemaLocation="scpBaseTypes.xsd"
+		namespace="http://www.capita-software-services.com/scp/base" />
+
+	<xs:element name="scpMultiAccountInvokeRequest" type="scpMultiAccountInvokeRequest" />
+
+	<xs:element name="scpMultiAccountInvokeResponse" type="scpbase:scpInvokeResponse" />
+
+	<xs:element name="scpMultiAccountQueryRequest" type="scpbase:scpQueryRequest" />
+
+	<xs:element name="scpMultiAccountQueryResponse" type="scpMultiAccountQueryResponse" />
+
+	<!-- Multi Account Invoke Request -->
+	<xs:complexType name="scpMultiAccountInvokeRequest">
+		<xs:complexContent>
+			<xs:extension base="scpbase:scpInvokeRequest">
+				<xs:sequence>
+					<xs:element name="sale" type="multiAccountSale" minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="multiAccountSale">
+		<xs:complexContent>
+		  <xs:extension base="scpbase:saleBase">
+			<xs:sequence>
+			  <xs:element name="items">
+				<xs:complexType>
+				  <xs:sequence>
+					<xs:element name="item" type="multiAccountItem"
+						  maxOccurs="unbounded" />
+				  </xs:sequence>
+				</xs:complexType>
+			  </xs:element>
+			</xs:sequence>
+		  </xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="multiAccountItem">
+		<xs:complexContent>
+		  <xs:extension base="scpbase:itemBase">
+			<xs:sequence>
+			  <xs:element name="clientId" type="clientId" />
+			  <xs:element name="bankDetails" type="scpbase:bankDetails" />
+			  <xs:element name="transactionChargeMethod" type="transactionChargeMethod" />
+			  <xs:element name="surcharge" type="surchargeItemMultiAccount"
+					minOccurs="0" />
+			</xs:sequence>
+		  </xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="surchargeItemMultiAccount">
+		<xs:complexContent>
+		  <xs:extension base="scpbase:surchargeItemDetails">
+			<xs:sequence>
+			  <xs:element name="bankDetails" type="scpbase:bacsBankAccount" />
+			</xs:sequence>
+		  </xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+  <xs:simpleType name="clientId">
+    <xs:restriction base="xs:token">
+      <xs:pattern value="[a-zA-Z0-9]{1,10}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="transactionChargeMethod">
+    <xs:annotation>
+      <xs:documentation>I - Invoice</xs:documentation>
+      <xs:documentation>N - Net Off (Default)</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="I"/>
+      <xs:enumeration value="N"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Multi Account Query Response -->
+	<xs:complexType name="scpMultiAccountQueryResponse">
+		<xs:complexContent>
+			<xs:extension base="scpbase:scpQueryResponse">
+				<xs:sequence>
+					<xs:element name="paymentResult" type="multiAccountPaymentResult"
+						minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="multiAccountPaymentResult">
+		<xs:complexContent>
+			<xs:extension base="scpbase:paymentResultBase">
+				<xs:choice minOccurs="0">
+					<xs:element name="paymentDetails" type="multiAccountPayment" />
+					<xs:element name="errorDetails" type="scpbase:errorDetails" />
+				</xs:choice>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="multiAccountPayment">
+		<xs:complexContent>
+			<xs:extension base="scpbase:paymentBase">
+				<xs:sequence>
+					<xs:element name="saleSummary" type="multiAccountSaleSummary" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="multiAccountSaleSummary">
+		<xs:sequence>
+			<xs:element name="items" minOccurs="0">
+				<xs:complexType>
+					<xs:sequence>
+						<xs:element name="itemSummary" type="multiAccountItemSummary" maxOccurs="unbounded" />
+					</xs:sequence>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="multiAccountItemSummary">
+		<xs:complexContent>
+			<xs:extension base="scpbase:itemSummaryBase">
+				<xs:sequence>
+					<xs:element minOccurs="0" name="surchargeDetails" type="scpbase:surchargeDetails" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+</xs:schema>

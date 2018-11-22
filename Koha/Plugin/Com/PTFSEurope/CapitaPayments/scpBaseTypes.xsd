@@ -1,0 +1,714 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.capita-software-services.com/scp/base"
+	xmlns="http://www.capita-software-services.com/scp/base" xmlns:cpt="http://www.capita-software-services.com/portal-api"
+	xmlns:cft="https://support.capita-software.co.uk/selfservice/?commonFoundation"
+	elementFormDefault="qualified" version="9.3.0.0">
+
+	<xs:import schemaLocation="commonPaymentTypes.xsd"
+		namespace="http://www.capita-software-services.com/portal-api" />
+	<xs:import schemaLocation="commonFoundationTypes.xsd"
+		namespace="https://support.capita-software.co.uk/selfservice/?commonFoundation" />
+
+	<xs:element name="scpVersionRequest" type="scpVersionRequest" />
+
+	<xs:element name="scpVersionResponse" type="scpVersionResponse" />
+
+	<xs:complexType name="requestWithCredentials">
+		<xs:sequence>
+			<xs:element ref="cft:credentials" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="scpVersionRequest">
+		<xs:complexContent>
+			<xs:extension base="requestWithCredentials">
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="scpVersionResponse">
+		<xs:sequence>
+			<xs:element name="version" type="xs:string" />
+			<xs:element name="schemaVersion" type="xs:string" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="scpInvokeRequest">
+		<xs:complexContent>
+			<xs:extension base="requestWithCredentials">
+				<xs:sequence>
+					<xs:element name="requestType" type="requestType" />
+					<xs:element name="requestId" type="xs:token" />
+					<xs:element name="routing" type="routing" />
+					<xs:element name="panEntryMethod" type="cpt:panEntryMethod" />
+					<xs:element name="additionalInstructions" type="additionalInstructions"
+						minOccurs="0" />
+					<xs:element name="billing" type="billingDetails"
+						minOccurs="0" />
+					<xs:element name="nonPaymentData" type="nonPaymentData" minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:simpleType name="requestType">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="payOnly" />
+			<xs:enumeration value="authoriseOnly" />
+			<xs:enumeration value="authoriseAndStore" />
+			<xs:enumeration value="authoriseAndAutoStore" />
+			<xs:enumeration value="storeOnly" />
+			<xs:enumeration value="payAndStore" />
+			<xs:enumeration value="payAndAutoStore" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Defines how the request is to be 'routed' - i.e. site and portal to 
+		which it is directed and URLs to which the response should be sent. -->
+	<xs:complexType name="routing">
+		<xs:sequence>
+			<xs:element name="returnUrl" type="returnUrl" />
+			<xs:element name="backUrl" type="cpt:httpUrl" minOccurs="0" />
+			<xs:element name="errorUrl" type="cpt:httpUrl" minOccurs="0" />
+			<xs:element name="siteId" type="xs:int" />
+			<xs:element name="scpId" type="xs:int" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="returnUrl">
+		<xs:union memberTypes="cpt:httpUrl scpSpecialUrl" />
+	</xs:simpleType>
+
+	<xs:simpleType name="scpSpecialUrl">
+		<xs:restriction base="xs:token">
+			<xs:enumeration value="scp:close"></xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Optional additional data which may affect how the portal processes 
+		the request - either in terms of the UI elements displayed or the business 
+		logic which is executed. -->
+	<xs:complexType name="additionalInstructions">
+		<xs:all>
+			<xs:element name="merchantCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="countryCode" type="cpt:isoCode"
+				minOccurs="0" />
+			<xs:element name="currencyCode" type="cpt:isoCode"
+				minOccurs="0" />
+			<xs:element name="acceptedCards" type="acceptedCards"
+				minOccurs="0" />
+			<xs:element name="language" type="cpt:languageCode"
+				minOccurs="0" />
+			<xs:element name="stageIndicator" type="stageIndicator"
+				minOccurs="0" />
+			<xs:element name="responseInterface" type="responseInterface"
+				minOccurs="0" />
+			<xs:element name="cardholderID" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="integrator" type="xs:positiveInteger"
+				minOccurs="0" />
+			<xs:element name="styleCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="frameworkCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="systemCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="walletRequest" minOccurs="0">
+				<xs:complexType>
+					<xs:complexContent>
+						<xs:restriction base="xs:anyType"/>
+					</xs:complexContent>
+				</xs:complexType>
+			</xs:element>
+			<xs:element name="recurringPayments" type="recurringPayments" minOccurs="0" />
+		</xs:all>
+	</xs:complexType>
+
+	<xs:complexType name="recurringPayments">
+		<xs:sequence>
+			<xs:element name="paymentAuthorityType" type="paymentAuthorityType" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="paymentAuthorityType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="notArrangedPayment" />
+			<xs:enumeration value="initialRecurringPayment" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="acceptedCards">
+		<xs:sequence>
+			<xs:element name="includes" type="acceptedCardList"
+				minOccurs="0" />
+			<xs:element name="excludes" type="acceptedCardList"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="acceptedCardList">
+		<xs:sequence>
+			<xs:element name="card" type="acceptedCardType" maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="stageIndicator">
+		<xs:sequence>
+			<xs:element name="firstPortalStage" type="stageNumber" />
+			<xs:element name="totalStages" type="stageNumber" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="stageNumber">
+		<xs:restriction base="xs:byte">
+			<xs:minInclusive value="1" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="responseInterface">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="scpWebService" />
+			<xs:enumeration value="commonPaymentsFormPost" />
+			<xs:enumeration value="xmlFormPost" />
+			<xs:enumeration value="htmlFormPost" />
+			<xs:enumeration value="planningFormPost" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="billingDetails">
+		<xs:sequence>
+			<xs:element name="card" type="card" minOccurs="0" />
+			<xs:element name="cardHolderDetails" type="cardHolderDetails"
+				minOccurs="0" />
+		</xs:sequence>
+		<xs:attribute name="editable" type="xs:boolean" use="optional"
+			default="true" />
+	</xs:complexType>
+
+	<xs:complexType name="card">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="cardDetails" type="cardDetails" />
+				<xs:element name="storedCardKey" type="storedCardKey" />
+			</xs:choice>
+			<xs:element name="paymentGroupCode" type="cpt:generalCode"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="cardDetails">
+		<xs:sequence>
+			<xs:element name="cardNumber" type="cpt:cardNumber" />
+			<xs:element name="expiryDate" type="cpt:generalDateMMYY" />
+			<xs:element name="startDate" type="cpt:generalDateMMYY"
+				minOccurs="0" />
+			<xs:element name="issueNumber" type="cpt:issueNumber"
+				minOccurs="0" />
+			<xs:element name="cardSecurityCode" type="cpt:cardSecurityCode"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="storedCardKey">
+		<xs:sequence>
+			<xs:element name="token" type="xs:string" />
+			<xs:element name="lastFourDigits" type="cpt:cardLastFourDigits" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="cardHolderDetails">
+		<xs:sequence>
+			<xs:element name="cardHolderName" type="cpt:generalString" minOccurs="0" />
+			<xs:element name="address" type="address" minOccurs="0" />
+			<xs:element name="contact" type="contact" minOccurs="0" />
+			<xs:element name="isoCountryCode" type="isoCountryCode" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="address">
+		<xs:sequence>
+			<xs:element name="address1" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="address2" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="address3" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="address4" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="county" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="country" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="postcode" type="cpt:postCode" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="contact">
+		<xs:sequence>
+			<xs:element name="telephone" type="cpt:phone" minOccurs="0" />
+			<xs:element name="mobile" type="cpt:phone" minOccurs="0" />
+			<xs:element name="email" minOccurs="0" type="cpt:email" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="saleBase">
+		<xs:sequence>
+			<xs:element name="saleSummary" type="summaryData" />
+			<xs:element name="deliveryDetails" type="contactDetails"
+				minOccurs="0" />
+			<xs:element name="lgSaleDetails" type="lgSaleDetails"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="summaryData">
+		<xs:sequence>
+			<xs:element name="description">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1" />
+						<xs:maxLength value="100" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="amountInMinorUnits" type="cpt:generalAmount" />
+			<xs:element minOccurs="0" name="reference" type="cpt:generalString" />
+			<xs:element minOccurs="0" name="displayableReference"
+				type="cpt:generalString" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="contactDetails">
+		<xs:sequence>
+			<xs:element name="name" type="threePartName" minOccurs="0" />
+			<xs:element name="address" type="address" minOccurs="0" />
+			<xs:element name="contact" type="contact" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="threePartName">
+		<xs:sequence>
+			<xs:element name="surname" type="cpt:generalString" />
+			<xs:element name="title" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="forename" type="cpt:generalString"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="nonPaymentData">
+		<xs:choice>
+			<xs:element name="mcc6012" type="mcc6012" />
+		</xs:choice>
+	</xs:complexType>
+
+	<xs:complexType name="mcc6012">
+		<xs:sequence>
+			<xs:element name="dateOfBirth" type="xs:date" minOccurs="0" />
+			<xs:element name="surname" type="cpt:generalString" minOccurs="0" />
+			<xs:element name="accountNumber" type="cpt:generalVeryShortString" minOccurs="0" />
+			<xs:element name="postcode" type="cpt:postCode" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="lgSaleDetails">
+		<xs:all>
+			<xs:element name="areaCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="locationCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="sourceCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="userName" type="cpt:userName" minOccurs="0" />
+			<xs:element name="userCode" type="cpt:generalCode"
+				minOccurs="0" />
+		</xs:all>
+	</xs:complexType>
+
+	<xs:complexType name="postageAndPacking">
+		<xs:sequence>
+			<xs:element name="pnpSummary" type="summaryData" />
+			<xs:element name="tax" type="taxItem" minOccurs="0" />
+			<xs:element name="lgPnpDetails" type="lgPnpDetails"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="taxItem">
+		<xs:sequence>
+			<xs:element name="vat" type="vatItem" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="vatItem">
+		<xs:complexContent>
+			<xs:extension base="vatBase">
+				<xs:sequence>
+					<xs:element name="vatAmountInMinorUnits" type="cpt:generalAmount" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="vatBase">
+		<xs:sequence>
+			<xs:element name="vatCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="vatRate" type="cpt:generalDecimal" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="lgPnpDetails">
+		<xs:all>
+			<xs:element name="fundCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="pnpCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="pnpOptionCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="pnpOptionDescription" type="cpt:generalString"
+				minOccurs="0" />
+		</xs:all>
+	</xs:complexType>
+
+	<xs:complexType name="surchargeItemDetails">
+		<xs:sequence>
+			<xs:element name="fundCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="reference" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="surchargeInfo" type="surchargeInfo" />
+			<xs:element name="tax" type="taxSurcharge" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="surchargeInfo">
+		<xs:sequence>
+			<xs:element name="cardSurchargeRate" type="cardSurchargeRate"
+				maxOccurs="unbounded" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="cardSurchargeRate">
+		<xs:sequence>
+			<xs:element name="surchargeCardType" type="acceptedCardType"
+				minOccurs="0" />
+			<xs:element name="surchargeBasis" type="surchargeBasis" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="acceptedCardType">
+		<xs:sequence>
+			<xs:element name="cardDescription" type="cpt:cardDescription"
+				minOccurs="0" />
+			<xs:element name="cardType" type="cardType" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="cardType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="CREDIT" />
+			<xs:enumeration value="DEBIT" />
+			<xs:enumeration value="NONE" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="surchargeBasis">
+		<xs:annotation>
+			<xs:documentation>At least one of surchargeFixed and/or surchargeRate
+				is required
+			</xs:documentation>
+		</xs:annotation>
+		<xs:all>
+			<xs:element name="surchargeFixed" type="cpt:generalAmountPositive"
+				minOccurs="0" />
+			<xs:element name="surchargeRate" type="cpt:generalDecimalPositive"
+				minOccurs="0" />
+		</xs:all>
+	</xs:complexType>
+
+	<xs:complexType name="taxSurcharge">
+		<xs:sequence>
+			<xs:element name="vat" type="vatSurcharge" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="vatSurcharge">
+		<xs:complexContent>
+			<xs:extension base="vatBase" />
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="itemBase">
+		<xs:sequence>
+			<xs:element name="itemSummary" type="summaryData" />
+			<xs:element name="tax" type="taxItem" minOccurs="0" />
+			<xs:element name="quantity" type="cpt:generalShort"
+				minOccurs="0" />
+			<xs:element name="notificationEmails" type="notificationEmails"
+				minOccurs="0" />
+			<xs:element name="lgItemDetails" type="lgItemDetails"
+				minOccurs="0" />
+			<xs:element name="customerInfo" type="customerInfo"
+				minOccurs="0" />
+			<xs:element name="lineId" type="cpt:lineId" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="notificationEmails">
+		<xs:sequence>
+			<xs:element name="email" type="cpt:email" maxOccurs="5" />
+			<xs:element name="additionalEmailMessage" type="cpt:generalLongString"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="lgItemDetails">
+		<xs:all>
+			<xs:element name="fundCode" type="cpt:generalCode"
+				minOccurs="0" />
+			<xs:element name="isFundItem" type="xs:boolean" minOccurs="0" />
+			<xs:element name="additionalReference" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="narrative" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="accountName" type="threePartName"
+				minOccurs="0" />
+			<xs:element name="accountAddress" type="address"
+				minOccurs="0" />
+			<xs:element name="contact" type="contact" minOccurs="0" />
+		</xs:all>
+	</xs:complexType>
+
+	<xs:complexType name="customerInfo">
+		<xs:sequence>
+			<xs:element name="customerString1" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="customerString2" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="customerString3" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="customerString4" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="customerString5" type="cpt:generalString"
+				minOccurs="0" />
+			<xs:element name="customerNumber1" type="xs:int"
+				minOccurs="0" />
+			<xs:element name="customerNumber2" type="xs:int"
+				minOccurs="0" />
+			<xs:element name="customerNumber3" type="xs:int"
+				minOccurs="0" />
+			<xs:element name="customerNumber4" type="xs:int"
+				minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="bankDetails">
+		<xs:complexContent>
+			<xs:extension base="bacsBankAccount">
+				<xs:sequence>
+					<xs:element name="bacsReference" type="cpt:bacsReference"
+						minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="bacsBankAccount">
+		<xs:sequence>
+			<xs:element name="sortCode" type="cpt:bankSortCode" />
+			<xs:element name="bacsAccountNumber" type="cpt:bankAccountNumber" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="scpInvokeResponse">
+		<xs:complexContent>
+			<xs:extension base="scpResponse">
+				<xs:sequence>
+					<xs:element name="invokeResult">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="status" type="status" />
+								<xs:choice>
+									<xs:element name="redirectUrl" type="xs:token" />
+									<xs:element name="errorDetails" type="errorDetails" />
+								</xs:choice>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="scpResponse">
+		<xs:sequence>
+			<xs:element minOccurs="0" name="requestId" type="xs:token" />
+			<xs:element name="scpReference" type="xs:string" />
+			<xs:element name="transactionState" type="transactionState" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="transactionState">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="IN_PROGRESS" />
+			<xs:enumeration value="COMPLETE" />
+			<xs:enumeration value="INVALID_REFERENCE" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="status">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="SUCCESS" />
+			<xs:enumeration value="INVALID_REQUEST" />
+			<xs:enumeration value="CARD_DETAILS_REJECTED" />
+			<xs:enumeration value="CANCELLED" />
+			<xs:enumeration value="LOGGED_OUT" />
+			<xs:enumeration value="NOT_ATTEMPTED" />
+			<xs:enumeration value="ERROR" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:complexType name="errorDetails">
+		<xs:sequence>
+			<xs:element minOccurs="0" name="errorId" type="xs:string" />
+			<xs:element minOccurs="0" name="errorMessage" type="xs:string" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="scpQueryRequest">
+		<xs:complexContent>
+			<xs:extension base="requestWithCredentials">
+				<xs:sequence>
+					<xs:element name="siteId" type="xs:int" />
+					<xs:element name="scpReference" type="xs:string" />
+				</xs:sequence>
+				<xs:attribute name="acceptNonCardResponseData" type="xs:boolean" use="optional"
+					default="false" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="scpQueryResponse">
+		<xs:complexContent>
+			<xs:extension base="scpResponse">
+				<xs:sequence>
+					<xs:element name="storeCardResult" type="storeCardResult"
+						minOccurs="0" />
+					<xs:element name="emailResult" type="emailResult"
+						minOccurs="0" />
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="storeCardResult">
+		<xs:sequence>
+			<xs:element name="status" type="status" />
+			<xs:choice minOccurs="0">
+				<xs:element name="storedCardDetails" type="storedCardDetails" />
+				<xs:element name="errorDetails" type="errorDetails" />
+			</xs:choice>
+			<xs:element name="isoCountryCode" type="isoCountryCode" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="storedCardDetails">
+		<xs:sequence>
+			<xs:element name="storedCardKey" type="storedCardKey" />
+			<xs:element name="cardDescription" type="cpt:cardDescription" />
+			<xs:element name="cardType" type="cardType" />
+			<xs:element name="expiryDate" type="cpt:generalDateMMYY" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="emailResult">
+		<xs:sequence>
+			<xs:element name="status" type="status" />
+			<xs:element name="errorDetails" type="errorDetails" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="paymentResultBase">
+		<xs:sequence>
+			<xs:element name="status" type="status" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="paymentBase">
+		<xs:sequence>
+			<xs:element name="paymentHeader" type="paymentHeader" />
+			<xs:choice>
+				<xs:element name="authDetails" type="authDetails" />
+				<xs:element name="nonCardPayment" type="nonCardPayment" />
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="paymentHeader">
+		<xs:sequence>
+			<xs:element name="transactionDate" type="cpt:generalDate" />
+			<xs:element name="machineCode" type="cpt:generalCode" />
+			<xs:element name="uniqueTranId">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:length value="12" />
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="authDetails">
+		<xs:sequence>
+			<xs:element name="authCode" type="cpt:generalString" />
+			<xs:element name="amountInMinorUnits" type="cpt:generalAmount" />
+			<xs:element name="maskedCardNumber" type="cpt:maskedCardNumber" />
+			<xs:element name="cardDescription" type="cpt:cardDescription" />
+			<xs:element name="cardType" type="cardType" />
+			<xs:element name="merchantNumber" type="cpt:generalString" />
+			<xs:element name="expiryDate" type="cpt:generalDateMMYY" minOccurs="0" />
+			<xs:element name="continuousAuditNumber" type="cpt:generalSequenceNumber"
+				minOccurs="0" />
+			<xs:element name="isoCountryCode" type="isoCountryCode" minOccurs="0" />
+			<xs:element name="derivedMerchantName" type="cpt:generalString" minOccurs="0" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="nonCardPayment">
+		<xs:sequence>
+			<xs:element name="amountInMinorUnits" type="cpt:generalAmount" />
+			<xs:element name="continuousAuditNumber" type="cpt:generalSequenceNumber"
+				minOccurs="0" />
+			<xs:element name="paymentType" type="cpt:generalString" />
+			<xs:element name="paymentProviderReference" type="cpt:generalString" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="itemSummaryBase">
+		<xs:sequence>
+			<xs:element name="lineId" type="cpt:lineId" />
+			<xs:element name="continuousAuditNumber" type="cpt:generalSequenceNumber" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="surchargeDetails">
+		<xs:sequence>
+			<xs:element name="fundCode" type="cpt:generalCode" />
+			<xs:element name="reference" type="cpt:generalString" />
+			<xs:element name="amountInMinorUnits" type="cpt:generalAmount" />
+			<xs:element name="surchargeBasis" type="surchargeBasis" />
+			<xs:element name="continuousAuditNumber" type="cpt:generalSequenceNumber" minOccurs="0" />
+			<xs:element name="vatAmountInMinorUnits" type="cpt:generalAmount" />
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:simpleType name="isoCountryCode">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="3" />
+			<xs:maxLength value="4" />
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<xs:schema elementFormDefault="qualified" 
+           targetNamespace="https://support.capita-software.co.uk/selfservice/?commonFoundation" 
+           xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+           xmlns:tns="https://support.capita-software.co.uk/selfservice/?commonFoundation">
+  <xs:annotation id="Version">
+    <xs:documentation>Schema Version: 7.4.2.0</xs:documentation>
+    <xs:documentation>Schema Description: Type definitions for use by Common Foundation</xs:documentation> 
+  </xs:annotation>
+  <xs:element name="credentials" type="tns:credentials" /> 
+  <xs:complexType name="credentials">
+    <xs:sequence>
+      <xs:element name="subject" type="tns:subject" /> 
+      <xs:element name="requestIdentification" type="tns:requestIdentification" /> 
+      <xs:element name="signature" type="tns:signature" /> 
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="subject">
+    <xs:sequence>
+      <xs:element name="subjectType" type="tns:subjectType" /> 
+      <xs:element name="identifier" type="xs:int" /> 
+      <xs:element minOccurs="0" name="systemCode" nillable="true" type="tns:systemCode" /> 
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="requestIdentification">
+    <xs:sequence>
+      <xs:element name="uniqueReference" type="xs:string" /> 
+      <xs:element name="timeStamp" type="tns:timeStamp" /> 
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="signature">
+    <xs:sequence>
+      <xs:element name="algorithm" type="tns:algorithm" /> 
+      <xs:element name="hmacKeyID" type="xs:int" /> 
+      <xs:element name="digest" type="xs:string" /> 
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="timeStamp">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(20)\d\d(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])([0-1]\d|2[0-3])([0-5]\d)([0-5]\d)"/> 
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="algorithm">
+    <xs:annotation>
+      <xs:documentation>Original</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Original"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="subjectType">
+    <xs:annotation>
+      <xs:documentation>Capita Site</xs:documentation>
+      <xs:documentation>Integrator</xs:documentation>
+      <xs:documentation>Other Security Entity</xs:documentation>
+      <xs:documentation>Secure Bureau Service Site</xs:documentation>
+      <xs:documentation>Capita Portal</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CapitaSite"/>
+      <xs:enumeration value="Integrator"/>
+      <xs:enumeration value="OtherSecurityEntity"/>
+      <xs:enumeration value="SecureBureauServiceSite"/>
+      <xs:enumeration value="CapitaPortal"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="systemCode">
+    <xs:annotation>
+      <xs:documentation>ACP   - AXIS Common Payments</xs:documentation>
+      <xs:documentation>ACR   - AXIS Counter Receipting</xs:documentation>
+      <xs:documentation>AIM   - AXIS Income Management</xs:documentation>
+      <xs:documentation>AIP   - AXIS Internet Payments</xs:documentation>
+      <xs:documentation>API   - AXIS Payments Interface</xs:documentation>
+      <xs:documentation>APN   - AXIS PAYe.NET</xs:documentation>
+      <xs:documentation>APP   - AXIS Payment Portal</xs:documentation>
+      <xs:documentation>AOS   - AXIS On-line Services</xs:documentation>
+      <xs:documentation>ASR   - AXIS Speech Recognition</xs:documentation>
+      <xs:documentation>ATP   - AXIS Telephone Payments</xs:documentation>
+      <xs:documentation>ATT   - AXIS Touch Tone</xs:documentation>
+      <xs:documentation>DIR   - Direct Authorisations from Third Parties</xs:documentation>
+      <xs:documentation>EXT   - EXTERNAL SYSTEM</xs:documentation>
+      <xs:documentation>HPAY  - AXIS Health PAYe.NET</xs:documentation>
+      <xs:documentation>MAPN  - Managed AXIS PAYe.NET</xs:documentation>
+      <xs:documentation>MHPAY - Managed AXIS Health PAYe.NET</xs:documentation>
+      <xs:documentation>MOTO  - AXIS Mail Order Telephone Order</xs:documentation>
+      <xs:documentation>PCR   - Perception</xs:documentation>
+      <xs:documentation>SBS   - Secure Bureau Service</xs:documentation>
+      <xs:documentation>SCM   - AXIS SafeCom</xs:documentation>
+      <xs:documentation>SCP   - Stored Card Portal</xs:documentation>
+      <xs:documentation>SGW   - AXIS Smart Gateway</xs:documentation>
+      <xs:documentation>SMS   - AXIS Short Message Service</xs:documentation>
+      <xs:documentation>THY   - Thyron</xs:documentation>
+      <xs:documentation>TVWAP - AXIS DigiTV</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ACP"  />
+      <xs:enumeration value="ACR"  />
+      <xs:enumeration value="AIM"  />
+      <xs:enumeration value="AIP"  />
+      <xs:enumeration value="API"  />
+      <xs:enumeration value="APN"  />
+      <xs:enumeration value="APP"  />
+      <xs:enumeration value="AOS"  />
+      <xs:enumeration value="ASR"  />
+      <xs:enumeration value="ATP"  />
+      <xs:enumeration value="ATT"  />
+      <xs:enumeration value="DIR"  />
+      <xs:enumeration value="EXT"  />
+      <xs:enumeration value="HPAY" />
+      <xs:enumeration value="MAPN" />
+      <xs:enumeration value="MHPAY"/>
+      <xs:enumeration value="MOTO" />
+      <xs:enumeration value="PCR"  />
+      <xs:enumeration value="SBS"  />
+      <xs:enumeration value="SCM"  />
+      <xs:enumeration value="SCP"  />
+      <xs:enumeration value="SGW"  />
+      <xs:enumeration value="SMS"  />
+      <xs:enumeration value="THY"  />
+      <xs:enumeration value="TVWAP"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
