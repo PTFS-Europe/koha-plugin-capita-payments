@@ -370,6 +370,7 @@ sub opac_online_payment_end {
 
         # Output result
         if ( defined($totalpaid) ) {
+            $totalpaid = sprintf "%.2f", $totalpaid;
             $template->param(
                 borrower      => scalar Koha::Patrons->find($borrowernumber),
                 message       => 'valid_payment',
