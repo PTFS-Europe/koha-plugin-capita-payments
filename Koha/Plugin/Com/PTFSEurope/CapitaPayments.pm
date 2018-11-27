@@ -31,7 +31,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
-our $VERSION = "00.00.01";
+our $VERSION = "00.00.02";
 our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional
@@ -128,7 +128,7 @@ sub opac_online_payment_begin {
     my @accountline_ids        = $cgi->multi_param('accountline');
     my $accountlines           = $schema->resultset('Accountline')
       ->search( { accountlines_id => \@accountline_ids } );
-    my @items;
+    my $items;
     for my $accountline ( $accountlines->all ) {
         my $amount = sprintf "%.2f", $accountline->amountoutstanding;
         $amount                 = $amount * 100;
@@ -144,7 +144,7 @@ sub opac_online_payment_begin {
             quantity => 1,
             lineId   => $accountline->accountlines_id,
         };
-        push @items, { item => $item };
+        push @{$items}, $item;
     }
 
     my $request = {
@@ -178,7 +178,9 @@ sub opac_online_payment_begin {
                 description        => 'Library Payment',
                 amountInMinorUnits => $sum_amountInMinorUnits,
             },
-            items => @items
+            items => {
+                item => $items
+            }
         }
     };
 
