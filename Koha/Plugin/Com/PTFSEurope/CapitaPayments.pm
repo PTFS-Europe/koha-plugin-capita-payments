@@ -175,6 +175,15 @@ sub opac_online_payment_begin {
             scpId     => $Pay360PortalID,
         },
         panEntryMethod => 'ECOM',
+        billing => {
+            cardHolderDetails => {
+                cardHolderName => $borrower->firstname . " "
+                  . $borrower->surname,
+                contact => {
+                    email => $borrower->email
+                }
+            }
+        },
         sale           => {
             saleSummary => {
                 description        => 'Library Payment',

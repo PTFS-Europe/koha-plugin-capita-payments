@@ -8,4 +8,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Remove `minlegth` from being appended to itemSummary/description fields.
 - Use correct currency in opac end process.
+- Add user email address to data in invokeRequest.
 
