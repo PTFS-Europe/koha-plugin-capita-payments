@@ -31,7 +31,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
-our $VERSION = "00.00.03";
+our $VERSION = "00.00.04";
 our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional
@@ -94,7 +94,7 @@ sub opac_online_payment_begin {
     my $transactionGUID = Data::GUID->new->as_string;
 
     # Get the borrower
-    my $borrower_result = Koha::Patrons->find($borrowernumber);
+    my $borrower = Koha::Patrons->find($borrowernumber);
 
     # Construct return URI
     my $return = C4::Context->preference('OPACBaseURL')
