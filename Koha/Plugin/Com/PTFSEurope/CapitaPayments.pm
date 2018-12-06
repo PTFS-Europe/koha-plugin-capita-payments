@@ -136,7 +136,9 @@ sub opac_online_payment_begin {
 
         my $item = {
             itemSummary => {
-                description          => $accountline->description . "minlength",
+                description => ( $accountline->description )
+                ? $accountline->description
+                : "Description not available",
                 amountInMinorUnits   => $amount,
                 reference            => $accountline->accountlines_id,
                 displayableReference => $accountline->accountlines_id,
