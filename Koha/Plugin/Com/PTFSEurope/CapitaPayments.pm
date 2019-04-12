@@ -175,7 +175,7 @@ sub opac_online_payment_begin {
             scpId     => $Pay360PortalID,
         },
         panEntryMethod => 'ECOM',
-        billing => {
+        billing        => {
             cardHolderDetails => {
                 cardHolderName => $borrower->firstname . " "
                   . $borrower->surname,
@@ -184,7 +184,7 @@ sub opac_online_payment_begin {
                 }
             }
         },
-        sale           => {
+        sale => {
             saleSummary => {
                 description        => 'Library Payment',
                 amountInMinorUnits => $sum_amountInMinorUnits,
@@ -370,11 +370,17 @@ sub opac_online_payment_end {
                     )
                   )
                 {
-                    my $datedue =
-                      C4::Circulation::AddRenewal( $line->borrowernumber,
-                        $line->itemnumber );
-                    C4::Circulation::_FixOverduesOnReturn(
-                        $line->borrowernumber, $line->itemnumber );
+                    my ( $can, $error ) =
+                      C4::Circulation::CanBookBeRenewed( $line->borrowernumber,
+                        $line->itemnumber, 0 );
+                    if ($can) {
+
+                        my $datedue =
+                          C4::Circulation::AddRenewal( $line->borrowernumber,
+                            $line->itemnumber );
+                        C4::Circulation::_FixOverduesOnReturn(
+                            $line->borrowernumber, $line->itemnumber );
+                    }
                 }
             }
         }
