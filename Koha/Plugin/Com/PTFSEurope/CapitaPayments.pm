@@ -87,14 +87,15 @@ sub opac_online_payment_begin {
     my $cgi    = $self->{'cgi'};
     my $schema = Koha::Database->new()->schema();
 
-    my ( $borrowernumber, $cookie, $sessionID ) =
+    my ( $userid, $cookie, $sessionID ) =
       checkauth( $cgi, 0, undef, 'opac' );
+    warn "Found userid: " . $userid . "\n" if $debug;
 
     # Generate unique transaction id
     my $transactionGUID = Data::GUID->new->as_string;
 
     # Get the borrower
-    my $borrower = Koha::Patrons->find($borrowernumber);
+    my $borrower = Koha::Patrons->find({ userid => $userid });
 
     # Construct return URI
     my $return = C4::Context->preference('OPACBaseURL')
