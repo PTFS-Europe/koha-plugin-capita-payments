@@ -87,15 +87,14 @@ sub opac_online_payment_begin {
     my $cgi    = $self->{'cgi'};
     my $schema = Koha::Database->new()->schema();
 
-    my ( $userid, $cookie, $sessionID ) =
-      checkauth( $cgi, 0, undef, 'opac' );
+    my ( $userid, $cookie, $sessionID ) = checkauth( $cgi, 0, undef, 'opac' );
     warn "Found userid: " . $userid . "\n" if $debug;
 
     # Generate unique transaction id
     my $transactionGUID = Data::GUID->new->as_string;
 
     # Get the borrower
-    my $borrower = Koha::Patrons->find({ userid => $userid });
+    my $borrower = Koha::Patrons->find( { userid => $userid } );
 
     # Construct return URI
     my $return = C4::Context->preference('OPACBaseURL')
@@ -198,7 +197,10 @@ sub opac_online_payment_begin {
 
     my $portal = $self->retrieve_data('Pay360Portal');
     my $scpSimpleInvoke =
-      $wsdl->compileClient( operation => 'scpSimpleInvoke' );
+      $portal
+      ? $wsdl->compileClient( operation => 'scpSimpleInvoke',
+        server => $portal )
+      : $wsdl->compileClient( operation => 'scpSimpleInvoke' );
 
     my $response = $scpSimpleInvoke->($request);
 
@@ -303,7 +305,10 @@ sub opac_online_payment_end {
     };
 
     my $portal = $self->retrieve_data('Pay360Portal');
-    my $scpSimpleQuery = $wsdl->compileClient( operation => 'scpSimpleQuery' );
+    my $scpSimpleQuery =
+        $portal
+      ? $wsdl->compileClient( operation => 'scpSimpleQuery', server => $portal )
+      : $wsdl->compileClient( operation => 'scpSimpleQuery' );
 
     my $response = $scpSimpleQuery->($request);
 
