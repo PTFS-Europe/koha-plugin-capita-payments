@@ -25,6 +25,7 @@ use Digest::SHA qw(hmac_sha256_base64);
 use Time::Moment;
 use File::Basename;
 use Data::GUID;
+use Data::Dumper;
 
 use XML::Compile::WSDL11;
 use XML::Compile::SOAP11;
@@ -195,11 +196,19 @@ sub opac_online_payment_begin {
         }
     };
 
-    my $portal = $self->retrieve_data('Pay360Portal');
+    my $portal         = $self->retrieve_data('Pay360Portal');
+    my $transport_hook = sub {
+        my ( $request, $trace, $transporter ) = @_;
+        $request->uri($portal);
+        $trace->{user_agent}->request($request);
+    };
+
     my $scpSimpleInvoke =
       $portal
-      ? $wsdl->compileClient( operation => 'scpSimpleInvoke',
-        server => $portal )
+      ? $wsdl->compileClient(
+        operation      => 'scpSimpleInvoke',
+        transport_hook => $transport_hook
+      )
       : $wsdl->compileClient( operation => 'scpSimpleInvoke' );
 
     my $response = $scpSimpleInvoke->($request);
@@ -212,14 +221,13 @@ sub opac_online_payment_begin {
         )
       )
     {
-        use Data::Dumper;
         warn Dumper( $response->{'scpSimpleInvokeResponse'}->{'invokeResult'}
               ->{'errorDetails'} );
         exit;    #FIXME: Return error page here
     }
 
     # Sucess
-    else {
+    elsif ( $response->{'scpSimpleInvokeResponse'} ) {
 
         # Store the transaction
         my $dbh   = C4::Context->dbh;
@@ -238,6 +246,12 @@ sub opac_online_payment_begin {
             $response->{'scpSimpleInvokeResponse'}->{'invokeResult'}
               ->{'redirectUrl'} );
         exit;
+    }
+
+    # No response
+    else {
+        warn "Uncaught scpSimpleInvoke: \n";
+        warn Dumper($response);
     }
 }
 
@@ -304,10 +318,19 @@ sub opac_online_payment_end {
         scpReference => $scpReference
     };
 
-    my $portal = $self->retrieve_data('Pay360Portal');
+    my $portal         = $self->retrieve_data('Pay360Portal');
+    my $transport_hook = sub {
+        my ( $request, $trace, $transporter ) = @_;
+        $request->uri($portal);
+        $trace->{user_agent}->request($request);
+    };
+
     my $scpSimpleQuery =
-        $portal
-      ? $wsdl->compileClient( operation => 'scpSimpleQuery', server => $portal )
+      $portal
+      ? $wsdl->compileClient(
+        operation      => 'scpSimpleQuery',
+        transport_hook => $transport_hook
+      )
       : $wsdl->compileClient( operation => 'scpSimpleQuery' );
 
     my $response = $scpSimpleQuery->($request);
@@ -331,8 +354,6 @@ sub opac_online_payment_end {
         my $saleSummary =
           $response->{'scpSimpleQueryResponse'}->{'paymentResult'}
           ->{'paymentDetails'}->{'saleSummary'};
-        use Data::Dumper;
-        warn Dumper($response);
         my @accountline_ids =
           map { $_->{'lineId'} } @{ $saleSummary->{'items'}->{'itemSummary'} };
 
