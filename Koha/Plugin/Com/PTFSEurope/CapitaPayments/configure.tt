@@ -61,6 +61,11 @@
 
         <p>
 
+        <label for="Pay360FundCode">Pay360 Fund Code: </label>
+        <input type="text" name="Pay360FundCode" value="[% Pay360FundCode %]" />
+
+        <p>
+
         <input type="hidden" name="save" value="1" />
 
         <input type="submit" value="Save configuration" />

@@ -123,6 +123,7 @@ sub opac_online_payment_begin {
         'CapitaPortal', $Pay360PortalID, $requestGUID, $timeStamp,
         'Original',     $Pay360HMACID
     );
+    my $Pay360FundCode = $self->retrieve_data('Pay360FundCode');
 
     # items
     my $sum_amountInMinorUnits = 0;
@@ -146,6 +147,15 @@ sub opac_online_payment_begin {
             },
             quantity => 1,
             lineId   => $accountline->accountlines_id,
+            (
+                defined($Pay360FundCode)
+                ? (
+                    lgItemDetails => {
+                        fundCode => $Pay360FundCode
+                    }
+                  )
+                : ()
+              )
         };
         push @{$items}, $item;
     }
@@ -455,6 +465,7 @@ sub configure {
             Pay360Portal   => $self->retrieve_data('Pay360Portal'),
             Pay360PortalID => $self->retrieve_data('Pay360PortalID'),
             Pay360HMACID   => $self->retrieve_data('Pay360HMACID'),
+            Pay360FundCode => $self->retrieve_data('Pay360FundCode'),
         );
 
         print $cgi->header();
@@ -469,6 +480,7 @@ sub configure {
                 Pay360PortalID       => $cgi->param('Pay360PortalID'),
                 Pay360HMACID         => $cgi->param('Pay360HMACID'),
                 Pay360HMAC           => $cgi->param('Pay360HMAC'),
+                Pay360FundCode       => $cgi->param('Pay360FundCode'),
                 last_configured_by   => C4::Context->userenv->{'number'},
             }
         );
