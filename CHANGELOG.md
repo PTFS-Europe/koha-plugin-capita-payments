@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v00.00.09] - 2019-07-05
+
 ### Added
 - Ability to define a fundCode to be added globally to item payments
 
