@@ -8,67 +8,95 @@
 
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Capita Pay360 Online Payments &rsaquo; Configuration</div>
 
-<div id="doc3">
-    <!-- We can access our own plugins resource files using the PLUGIN_PATH variable. -->
-    <img src="[% PLUGIN_PATH %]/logo.png" />
-    <h3>Koha: Capita Pay360 Online Payments: Configuration</h3>
+<div class="main container-fluid">
+    <div class="row">
 
-    <!-- Notice our form here has no 'action', this is good, it means that our forms will always get passed back to 'plugins/run.pl'. You could hard code it instead if you prefer -->
-    <form method="get">
-        <!-- Always pass these two parameters so the plugin system knows what to execute! -->
-        <input type="hidden" name="class" value="[% CLASS %]"/>
-        <input type="hidden" name="method" value="[% METHOD %]"/>
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
-        <label for="enable_opac_payments">Enable OPAC Account Payments: </label>
-        <select name="enable_opac_payments">
-            [% IF enable_opac_payments == 'No' %]
-                <option value="No" selected="selected">No</option>
-            [% ELSE %]
-                <option value="No">No</option>
-            [% END %]
+                <h3>Koha: Capita Pay360 Online Payments: Configuration</h3>
+            
+                <!-- Notice our form here has no 'action', this is good, it means that our forms will always get passed back to 'plugins/run.pl'. You could hard code it instead if you prefer -->
+                <form method="get">
+                    <!-- Always pass these two parameters so the plugin system knows what to execute! -->
+                    <input type="hidden" name="class" value="[% CLASS %]"/>
+                    <input type="hidden" name="method" value="[% METHOD %]"/>
 
-            [% IF enable_opac_payments == 'Yes' %]
-                <option value="Yes" selected="selected">Yes</option>
-            [% ELSE %]
-                <option value="Yes">Yes</option>
-            [% END %]
-        </select>
+                    <fieldset class="rows">
+                        <legend>Global Settings</legend>
 
-        <p>
+                        <ol>
+                            <li>
+                                <label for="enable_opac_payments">Enable OPAC Account Payments: </label>
+                                <select name="enable_opac_payments">
+                                    [% IF enable_opac_payments == 'No' %]
+                                        <option value="No" selected="selected">No</option>
+                                    [% ELSE %]
+                                        <option value="No">No</option>
+                                    [% END %]
+                        
+                                    [% IF enable_opac_payments == 'Yes' %]
+                                        <option value="Yes" selected="selected">Yes</option>
+                                    [% ELSE %]
+                                        <option value="Yes">Yes</option>
+                                    [% END %]
+                                </select>
+                            </li>
+                        </ol>
+                    </fieldset>
 
-        <label for="Pay360SiteID">Pay360 Site ID: </label>
-        <input type="text" name="Pay360SiteID" value="[% Pay360SiteID %]" />
+                    <fieldset class="rows">
+                        <legend>Pay360 Settings</legend>
+                        <ol>
+                            <li>
+                                <label for="Pay360SiteID">Pay360 Site ID: </label>
+                                <input type="text" name="Pay360SiteID" value="[% Pay360SiteID %]" />
+                            </li>
 
-        <p>
+                            <li>
+                                <label for="Pay360Portal">Pay360 Portal: </label>
+                                <input type="text" name="Pay360Portal" value="[% Pay360Portal %]" />
+                            </li>
 
-        <label for="Pay360Portal">Pay360 Portal: </label>
-        <input type="text" name="Pay360Portal" value="[% Pay360Portal %]" />
+                            <li>
+                                <label for="Pay360PortalID">Pay360 Portal ID: </label>
+                                <input type="text" name="Pay360PortalID" value="[% Pay360PortalID %]" />
+                            </li>
 
-        <p>
+                            <li>
+                                <label for="Pay360HMAC">Pay360 HMAC: </label>
+                                <input type="text" name="Pay360HMAC" value="[% Pay360HMAC %]" />
+                            </li>
 
-        <label for="Pay360PortalID">Pay360 Portal ID: </label>
-        <input type="text" name="Pay360PortalID" value="[% Pay360PortalID %]" />
+                            <li>
+                                <label for="Pay360HMACID">Pay360 HMAC ID: </label>
+                                <input type="text" name="Pay360HMACID" value="[% Pay360HMACID %]" />
+                            </li>
 
-        <p>
+                            <li>
+                                <label for="Pay360FundCode">Pay360 Fund Code: </label>
+                                <input type="text" name="Pay360FundCode" value="[% Pay360FundCode %]" />
+                            </li>
+                        </ol>
+                    </fieldset>
 
-        <label for="Pay360HMAC">Pay360 HMAC: </label>
-        <input type="text" name="Pay360HMAC" value="[% Pay360HMAC %]" />
+                    <fieldset class="action">
+                         <input type="hidden" name="save" value="1" />
+                         <input type="submit" value="Save configuration" />
+                         <a class="cancel" href="/cgi-bin/koha/plugins/run.pl?class=Koha%3A%3APlugin%3A%3ACom%3A%3APTFSEurope%3A%3ACapitaPayments&method=configure">Cancel</a>
+                    </fieldset>
+                </form>
+            </main>
+        </div>
 
-        <p>
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
 
-        <label for="Pay360HMACID">Pay360 HMAC ID: </label>
-        <input type="text" name="Pay360HMACID" value="[% Pay360HMACID %]" />
+                <!-- We can access our own plugins resource files using the PLUGIN_PATH variable. -->
+                <img src="[% PLUGIN_PATH %]/logo.png" />
+            </aside>
+        </div>
 
-        <p>
-
-        <label for="Pay360FundCode">Pay360 Fund Code: </label>
-        <input type="text" name="Pay360FundCode" value="[% Pay360FundCode %]" />
-
-        <p>
-
-        <input type="hidden" name="save" value="1" />
-
-        <input type="submit" value="Save configuration" />
-    </form>
+    </div>
 
 [% INCLUDE 'intranet-bottom.inc' %]
