@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated configuration page styling to match modern practive
+- Added the `interface` argument to the parameters passed in the call to Koha::Account::pay
 
 ## [v00.00.09] - 2019-07-05
 

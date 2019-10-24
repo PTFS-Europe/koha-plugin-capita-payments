@@ -385,6 +385,7 @@ sub opac_online_payment_end {
                 note       => 'Pay360 Payment',
                 library_id => $borrower->branchcode,
                 lines      => $lines,
+                interface  => 'opac',
             }
         );
 
