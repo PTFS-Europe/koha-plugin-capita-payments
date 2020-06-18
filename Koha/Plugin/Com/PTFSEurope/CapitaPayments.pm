@@ -32,7 +32,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
-our $VERSION = "00.00.09";
+our $VERSION = "00.00.10";
 our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional
@@ -40,9 +40,9 @@ our $metadata = {
     name            => 'Capita Online Payments Plugin',
     author          => 'Martin Renvoize',
     date_authored   => '2018-06-13',
-    date_updated    => "2019-07-05",
+    date_updated    => "2020-06-18",
     minimum_version => '17.11.00.000',
-    maximum_version => '18.11.06.000',
+    maximum_version => '19.11.06.000',
     version         => $VERSION,
     description     => 'This plugin implements online payments using '
       . 'Capita Educations payments platform.',
