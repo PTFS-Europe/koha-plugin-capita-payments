@@ -16,6 +16,7 @@ use C4::Context;
 use C4::Circulation;
 use C4::Auth;
 
+use Koha;
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Patrons;
@@ -42,7 +43,7 @@ our $metadata = {
     date_authored   => '2018-06-13',
     date_updated    => "2020-06-18",
     minimum_version => '17.11.00.000',
-    maximum_version => '19.11.06.000',
+    maximum_version => '20.05.00.000',
     version         => $VERSION,
     description     => 'This plugin implements online payments using '
       . 'Capita Educations payments platform.',
@@ -69,6 +70,19 @@ sub new {
     my $self = $class->SUPER::new($args);
 
     return $self;
+}
+
+sub _version_check {
+    my ( $self, $minversion ) = @_;
+
+    $minversion =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
+
+    my $kohaversion = Koha::version();
+
+    # remove the 3 last . to have a Perl number
+    $kohaversion =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
+
+    return ( $kohaversion > $minversion );
 }
 
 sub opac_online_payment {
@@ -395,29 +409,59 @@ sub opac_online_payment_end {
         $sth->execute( $accountline_id, $transactionGUID );
 
         # Renew any items as required
-        for my $line ( @{$lines} ) {
-            my $item = Koha::Items->find( { itemnumber => $line->itemnumber } );
+        unless ( $self->_version_check('20.05.00') ) {
+            for my $line ( @{$lines} ) {
+                my $item =
+                  Koha::Items->find( { itemnumber => $line->itemnumber } );
 
-            # Renew if required
-            if ( defined( $line->accounttype )
-                && $line->accounttype eq "FU" )
-            {
-                if (
-                    C4::Circulation::CheckIfIssuedToPatron(
-                        $line->borrowernumber, $item->biblionumber
-                    )
-                  )
-                {
-                    my ( $can, $error ) =
-                      C4::Circulation::CanBookBeRenewed( $line->borrowernumber,
-                        $line->itemnumber, 0 );
-                    if ($can) {
+                # Renew if required
+                if ( $self->_version_check('19.11.00') ) {
+                    if (   $line->debit_type_code eq "OVERDUE"
+                        && $line->status ne "UNRETURNED" )
+                    {
+                        if (
+                            C4::Circulation::CheckIfIssuedToPatron(
+                                $line->borrowernumber, $item->biblionumber
+                            )
+                          )
+                        {
+                            my ( $renew_ok, $error ) =
+                              C4::Circulation::CanBookBeRenewed(
+                                $line->borrowernumber, $line->itemnumber, 0 );
+                            if ($renew_ok) {
+                                C4::Circulation::AddRenewal(
+                                    $line->borrowernumber, $line->itemnumber );
+                            }
+                        }
+                    }
+                }
+                else {
+                    if ( defined( $line->accounttype )
+                        && $line->accounttype eq "FU" )
+                    {
+                        if (
+                            C4::Circulation::CheckIfIssuedToPatron(
+                                $line->borrowernumber, $item->biblionumber
+                            )
+                          )
+                        {
+                            my ( $can, $error ) =
+                              C4::Circulation::CanBookBeRenewed(
+                                $line->borrowernumber, $line->itemnumber, 0 );
+                            if ($can) {
 
-                        my $datedue =
-                          C4::Circulation::AddRenewal( $line->borrowernumber,
-                            $line->itemnumber );
-                        C4::Circulation::_FixOverduesOnReturn(
-                            $line->borrowernumber, $line->itemnumber );
+                                # Fix paid for fine before renewal to prevent 
+                                # call to _CalculateAndUpdateFine if 
+                                # CalculateFinesOnReturn is set.
+                                C4::Circulation::_FixOverduesOnReturn(
+                                    $line->borrowernumber, $line->itemnumber );
+
+                                # Renew the item
+                                my $datedue =
+                                  C4::Circulation::AddRenewal(
+                                    $line->borrowernumber, $line->itemnumber );
+                            }
+                        }
                     }
                 }
             }

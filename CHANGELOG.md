@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Update plugin to work with Koha 19.11 and 20.05 releases.
+
 ## [v00.00.10] - 2020-06-18
 
 ### Changed
