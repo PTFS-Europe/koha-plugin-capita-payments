@@ -41,6 +41,8 @@ This plugin has some additional perl library dependancies which are not part of 
 * XML::Compile::Transport::SOAPHTTP
 * Time::Moment
 
+`sudo apt install libxml-compile-wsdl11-perl libdata-guid-perl libtime-moment-perl` for example
+
 ## Download and install the plugin
 
 The latest releases of this plugin can be obtained from the [release page](https://github.com/ptfs-europe/koha-plugin-capita-payments/releases) where you can download the relevant *.kpz file
