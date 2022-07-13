@@ -36,6 +36,7 @@ Once set up is complete you will need to alter your UseKohaPlugins system prefer
 
 This plugin has some additional perl library dependancies which are not part of the standard Koha install and as such you will need to install them in your prefered manor:
 
+* Data::GUID
 * XML::Compile::WSDL11
 * XML::Compile::SOAP
 * XML::Compile::Transport::SOAPHTTP
