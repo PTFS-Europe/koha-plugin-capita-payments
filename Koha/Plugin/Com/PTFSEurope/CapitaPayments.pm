@@ -33,7 +33,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
-our $VERSION = "00.00.13";
+our $VERSION = "00.00.14";
 our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional

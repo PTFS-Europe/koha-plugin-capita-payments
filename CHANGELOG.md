@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v00.00.14] - 2022-07-15
+
+## Fixed
+- Added styling of payment results page
+
 ## [v00.00.13] - 2022-07-15
 
 ## Fixed
