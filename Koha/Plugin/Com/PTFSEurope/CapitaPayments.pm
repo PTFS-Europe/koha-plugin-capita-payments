@@ -14,7 +14,7 @@ use base qw(Koha::Plugins::Base);
 
 use C4::Context;
 use C4::Circulation qw( CheckIfIssuedToPatron CanBookBeRenewed AddRenewal );
-use C4::Auth qw( checkauth );
+use C4::Auth qw( checkauth get_template_and_user );
 
 use Koha;
 use Koha::Account;
@@ -33,7 +33,7 @@ use XML::Compile::SOAP11;
 use XML::Compile::Transport::SOAPHTTP;
 
 ## Here we set our plugin version
-our $VERSION = "00.00.12";
+our $VERSION = "00.00.13";
 our $debug   = 0;
 
 ## Here is our metadata, some keys are required, some are optional
@@ -41,7 +41,7 @@ our $metadata = {
     name            => 'Capita Online Payments Plugin',
     author          => 'Martin Renvoize',
     date_authored   => '2018-06-13',
-    date_updated    => "2022-07-14",
+    date_updated    => "2022-07-15",
     minimum_version => '17.11.00.000',
     maximum_version => '21.11.09.000',
     version         => $VERSION,
